@@ -2,21 +2,21 @@
 
 import Link from "next/link";
 import { Logo } from "@/components/shared/Logo";
-import { ShoppingCart, User } from "lucide-react";
-import { useEffect, useState } from "react";
-// Redux imports
+import { ShoppingCart, User, LogOut } from "lucide-react";
+import { useSession, signOut } from "next-auth/react"; // 1. Import session hooks
 import { useSelector } from "react-redux";
 import { RootState } from "@/lib/store/store";
+import { useEffect, useState } from "react";
 
 export function StoreHeader() {
-  // Use Selector reads from the specific slice "cart"
+  // 2. Get the user's session status
+  const { data: session, status } = useSession();
   const items = useSelector((state: RootState) => state.cart.items);
+  
   const [mounted, setMounted] = useState(false);
-
   useEffect(() => {
     setMounted(true);
   }, []);
-
   const totalItems = items.reduce((total, item) => total + item.quantity, 0);
 
   return (
@@ -31,6 +31,7 @@ export function StoreHeader() {
           </nav>
 
           <div className="flex items-center gap-5">
+            {/* Shopping Cart Link (no changes) */}
             <Link href="/cart" className="relative text-foreground hover:text-primary transition-colors">
               <ShoppingCart size={22} />
               {mounted && totalItems > 0 && (
@@ -39,9 +40,31 @@ export function StoreHeader() {
                 </span>
               )}
             </Link>
-            <Link href="/api/auth/signin" className="text-foreground hover:text-primary transition-colors">
-              <User size={22} />
-            </Link>
+
+            {/* 3. DYNAMIC AUTHENTICATION LINKS */}
+            {status === "loading" ? (
+              // Show a skeleton loader while session is being fetched
+              <div className="h-6 w-6 bg-gray-200 rounded-full animate-pulse"></div>
+            ) : session?.user ? (
+              // If user IS logged in, show Account and Sign Out
+              <>
+                <Link href="/account" className="text-foreground hover:text-primary transition-colors" title="My Account">
+                  <User size={22} />
+                </Link>
+                <button
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                  className="text-foreground hover:text-red-600 transition-colors"
+                  title="Sign Out"
+                >
+                  <LogOut size={22} />
+                </button>
+              </>
+            ) : (
+              // If user IS NOT logged in, show Sign In link
+              <Link href="/login" className="text-foreground hover:text-primary transition-colors" title="Sign In">
+                <User size={22} />
+              </Link>
+            )}
           </div>
         </div>
       </div>

@@ -1,14 +1,30 @@
 import { prisma } from "@/lib/db";
+import { UpdateOrderStatus } from "@/components/admin/UpdateOrderStatus";
+
+// --- MANUAL TYPE DEFINITIONS ---
+// This bypasses all editor caching issues.
+type UserInfo = {
+    name: string | null;
+    email: string;
+};
+
+type OrderWithUser = {
+    id: string;
+    createdAt: Date;
+    amountTotal: any; // Using 'any' for Prisma Decimal
+    status: string;
+    user: UserInfo;
+};
+// ------------------------------
 
 export default async function AdminOrdersPage() {
-  // 1. Fetch all orders, including related user and items
   const orders = await prisma.order.findMany({
     orderBy: { createdAt: "desc" },
     include: {
-      user: true,        // Include the user who placed the order
-      items: {           // Include the specific items in the order
+      user: true,
+      items: {
         include: {
-          product: true, // And the product details for each item
+          product: true,
         },
       },
     },
@@ -45,7 +61,8 @@ export default async function AdminOrdersPage() {
                 </td>
               </tr>
             ) : (
-              orders.map((order) => (
+              // Use type casting to apply our manual type
+              (orders as OrderWithUser[]).map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-6 py-4 font-mono text-xs text-foreground truncate" title={order.id}>
                     {order.id.substring(0, 12)}...
@@ -53,25 +70,21 @@ export default async function AdminOrdersPage() {
                   <td className="px-6 py-4">
                     <div className="font-medium text-foreground">{order.user.name}</div>
                     <div className="text-xs text-muted-foreground">{order.user.email}</div>
-
                   </td>
                   <td className="px-6 py-4 font-mono">
                     ${Number(order.amountTotal).toFixed(2)}
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      order.status === "PAID" ? "bg-green-50 text-green-700" :
-                      order.status === "PENDING" ? "bg-yellow-50 text-yellow-700" :
-                      "bg-gray-50 text-gray-700"
-                    }`}>
-                      {order.status}
-                    </span>
+                    <UpdateOrderStatus 
+                      orderId={order.id} 
+                      currentStatus={order.status as "PENDING" | "SHIPPED" | "CANCELLED"} 
+                    />
                   </td>
                   <td className="px-6 py-4">
                     {new Date(order.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="text-primary hover:underline">
+                    <button className="text-primary hover:underline disabled:text-gray-400" disabled>
                       View
                     </button>
                   </td>

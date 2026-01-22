@@ -18,6 +18,29 @@ async function main() {
   });
   
   console.log("✅ Admin user created: admin@luxe.com / admin123");
+
+  // Inside the main() function of seed.ts
+
+const categories = [
+  { name: "Mens", slug: "mens" },
+  { name: "Womens", slug: "womens" },
+  { name: "Kids", slug: "kids" },
+  { name: "Accessories", slug: "accessories" },
+];
+
+for (const category of categories) {
+  await prisma.category.upsert({
+    where: { slug: category.slug },
+    update: {},
+    create: {
+      name: category.name,
+      slug: category.slug,
+    },
+  });
+}
+
+console.log("✅ Categories seeded successfully.");
+
 }
 
 main()

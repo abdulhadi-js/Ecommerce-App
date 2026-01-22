@@ -24,8 +24,9 @@ export async function createProduct(formData: FormData) {
   const description = formData.get("description") as string;
   const inventory = parseInt(formData.get("inventory") as string);
   const imageUrl = formData.get("imageUrl") as string;
+  const categoryId = formData.get("categoryId") as string; // <-- 1. Get the new Category ID
 
-  if (!name || !price || !description || !inventory || !imageUrl) {
+  if (!name || !price || !description || !inventory || !imageUrl || !categoryId) {
     throw new Error("Missing required fields");
   }
 
@@ -38,11 +39,12 @@ export async function createProduct(formData: FormData) {
       description,
       price,
       inventory,
-      images: [imageUrl], // Storing a single image URL in a JSON array
+      images: [imageUrl],
+      categoryId, // <-- 2. Add it to the database query
     },
   });
 
-  revalidatePath("/admin/products"); // Tell Next.js to refresh the data on the product list page
+  revalidatePath("/admin/products");
   redirect("/admin/products");
 }
 
@@ -55,10 +57,17 @@ export async function updateProduct(id: string, formData: FormData) {
   const description = formData.get("description") as string;
   const inventory = parseInt(formData.get("inventory") as string);
   const imageUrl = formData.get("imageUrl") as string;
+  const categoryId = formData.get("categoryId") as string; // <-- 1. Get the new Category ID
 
-  if (!id || !name || !price || !description || !inventory || !imageUrl) {
+  if (!id || !name || !price || !description || !inventory || !imageUrl || !categoryId) {
     throw new Error("Missing required fields");
   }
+
+  // Fetch the product to get its slug for revalidation
+  const product = await prisma.product.findUnique({
+    where: { id },
+    select: { slug: true }
+  });
 
   await prisma.product.update({
     where: { id },
@@ -68,11 +77,14 @@ export async function updateProduct(id: string, formData: FormData) {
       price,
       inventory,
       images: [imageUrl],
+      categoryId, // <-- 2. Add it to the database query
     },
   });
 
-  revalidatePath("/admin/products"); // Refresh the product list
-  revalidatePath(`/products/${id}`); // Also refresh the public product page
+  revalidatePath("/admin/products");
+  if (product) {
+      revalidatePath(`/products/${product.slug}`); // Also refresh the public product page
+  }
   redirect("/admin/products");
 }
 
@@ -84,12 +96,10 @@ export async function deleteProduct(id: string) {
     throw new Error("Product ID is required");
   }
 
-  // First, delete related order items to avoid foreign key constraint errors
   await prisma.orderItem.deleteMany({
     where: { productId: id },
   });
   
-  // Then, delete the product itself
   await prisma.product.delete({
     where: { id },
   });

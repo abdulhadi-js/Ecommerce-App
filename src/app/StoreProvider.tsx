@@ -1,20 +1,24 @@
 "use client";
 
 import { useRef } from "react";
-import { Provider } from "react-redux";
+import { Provider as ReduxProvider } from "react-redux";
 import { makeStore, AppStore } from "@/lib/store/store";
+import { SessionProvider } from "next-auth/react"; // <-- MUST be imported
 
 export default function StoreProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Use a Ref to ensure the store is only created once per session
-  const storeRef = useRef<AppStore | null>(null); // Initialize with null first
-  
+  const storeRef = useRef<AppStore | null>(null);
   if (!storeRef.current) {
     storeRef.current = makeStore();
   }
 
-  return <Provider store={storeRef.current}>{children}</Provider>;
+  return (
+    // SessionProvider MUST be on the outside
+    <SessionProvider>
+      <ReduxProvider store={storeRef.current}>{children}</ReduxProvider>
+    </SessionProvider>
+  );
 }

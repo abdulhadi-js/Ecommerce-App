@@ -43,6 +43,12 @@ model Product {
   isFeatured    Boolean     @default(false)
   createdAt     DateTime    @default(now())
   orderItems    OrderItem[]
+  // Inside the 'Product' model
+
+categoryId String?   // The foreign key
+category   Category? @relation(fields: [categoryId], references: [id])
+
+@@index([categoryId]) // Add an index for faster lookups
 }
 
 model Order {
@@ -69,4 +75,11 @@ model OrderItem {
 
   @@index([orderId])
   @@index([productId])
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  slug      String    @unique
+  products  Product[]
 }
