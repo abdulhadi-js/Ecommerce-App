@@ -1,121 +1,68 @@
 import { prisma } from "@/lib/db";
-import { notFound } from "next/navigation";
-import { updateProduct, deleteProduct } from "@/actions/products";
+import { notFound, redirect } from "next/navigation"; // Added redirect here
+import { ProductForm } from "@/components/admin/ProductForm";
+import { deleteProduct } from "@/actions/products";
 import Link from "next/link";
 import { ChevronLeft, Trash2 } from "lucide-react";
-import { ImageUploader } from "@/components/widgets/ImageUploader";
 
 export default async function EditProductPage(props: { 
   params: Promise<{ id: string }> 
 }) {
-  const params = await props.params;
-
-  // 1. Fetch both the product and all available categories in parallel
+  const { id } = await props.params;
+  
   const [product, categories] = await Promise.all([
-    prisma.product.findUnique({
-      where: { id: params.id },
-    }),
-    prisma.category.findMany({
-      orderBy: { name: "asc" },
-    }),
+    prisma.product.findUnique({ where: { id } }),
+    prisma.category.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   if (!product) return notFound();
 
-  const updateProductWithId = updateProduct.bind(null, product.id);
-  const deleteProductWithId = deleteProduct.bind(null, product.id);
+  // FIX: This wrapper handles the delete and the redirect on the server
+  // to keep the TypeScript form action happy.
+  async function handleDelete() {
+    "use server";
+    await deleteProduct(id);
+    redirect("/admin/products");
+  }
+
+  const initialData = {
+    ...product,
+    price: Number(product.price), 
+    sizes: (product.sizes as string[]) || [],
+    colors: (product.colors as any[]) || [],
+    extraDetails: (product.extraDetails as any) || {},
+    images: (product.images as string[]) || [],
+  };
 
   return (
-    <div className="max-w-5xl mx-auto">
-      {/* Header */}
+    <div className="max-w-7xl mx-auto px-4 py-10">
       <div className="mb-12 flex items-center justify-between">
         <div className="flex items-center gap-4">
-            <Link 
-              href="/admin/products" 
-              className="text-muted-foreground hover:text-black transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="text-3xl font-serif font-medium text-black">Edit Product</h1>
-              <p className="text-xs tracking-widest uppercase text-gray-400 mt-1">
-                ID: {product.id}
-              </p>
-            </div>
+          <Link href="/admin/products" className="text-muted-foreground hover:text-black">
+            <ChevronLeft className="w-6 h-6" />
+          </Link>
+          <div>
+            <h1 className="text-4xl font-serif text-gray-900">Edit Piece</h1>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-gray-400 mt-1">ID: {product.id}</p>
+          </div>
         </div>
-        <form action={deleteProductWithId}>
-            <button type="submit" className="flex items-center gap-2 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-md transition">
-                <Trash2 size={16} /> Delete
-            </button>
+
+        {/* Updated Form Action to use the local handleDelete wrapper */}
+        <form action={handleDelete}>
+          <button 
+            type="submit" 
+            className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-red-400 hover:text-red-600 p-2 transition-colors"
+          >
+            <Trash2 size={16} /> Delete Entry
+          </button>
         </form>
       </div>
 
-      {/* Main Form */}
-      <form action={updateProductWithId}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          
-          {/* LEFT COLUMN */}
-          <div className="lg:col-span-2 space-y-8">
-            <div className="group">
-              <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Product Name</label>
-              <input name="name" required type="text" defaultValue={product.name} className="w-full border-b border-gray-300 py-3 text-2xl font-serif focus:outline-none focus:border-black bg-transparent" />
-            </div>
-            <div className="group">
-              <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Description</label>
-              <textarea name="description" required rows={6} defaultValue={product.description} className="w-full border-b border-gray-300 py-3 text-base font-sans focus:outline-none focus:border-black bg-transparent resize-none" />
-            </div>
-            <div>
-              <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Product Image</label>
-              <ImageUploader 
-                inputName="imageUrl" 
-                initialUrl={(product.images as string[])[0]} 
-              />
-            </div>
-          </div>
-
-          {/* RIGHT COLUMN */}
-          <div className="space-y-8 bg-gray-50/50 p-8 h-fit rounded-sm">
-            {/* CATEGORY DROPDOWN - THE NEW PART */}
-            <div>
-              <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Category</label>
-              <select
-                name="categoryId"
-                required
-                // 2. Pre-select the product's current category
-                defaultValue={product.categoryId || ""}
-                className="w-full border-b border-gray-300 py-2 text-base focus:outline-none focus:border-black bg-transparent"
-              >
-                <option value="">Select a category</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {/* PRICE INPUT */}
-             <div>
-              <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Price (USD)</label>
-              <div className="relative">
-                <span className="absolute left-0 top-3 text-gray-400">$</span>
-                <input name="price" required type="number" step="0.01" defaultValue={Number(product.price)} className="w-full border-b border-gray-300 py-2 pl-4 text-lg font-medium focus:outline-none focus:border-black bg-transparent" />
-              </div>
-            </div>
-            {/* INVENTORY INPUT */}
-            <div>
-              <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Inventory Stock</label>
-              <input name="inventory" required type="number" defaultValue={product.inventory} className="w-full border-b border-gray-300 py-2 text-lg font-medium focus:outline-none focus:border-black bg-transparent" />
-            </div>
-            {/* ACTION BUTTON */}
-            <div className="pt-8">
-              <button type="submit" className="w-full bg-black text-white text-xs font-bold uppercase tracking-[0.2em] py-4 hover:bg-gray-900 transition-all active:scale-[0.98]">
-                Update Product
-              </button>
-            </div>
-          </div>
-          
-        </div>
-      </form>
+      <ProductForm 
+        categories={categories} 
+        initialData={initialData} 
+        actionType="update" 
+      />
     </div>
   );
 }

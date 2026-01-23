@@ -41,14 +41,21 @@ model Product {
   images        Json
   inventory     Int         @default(0)
   isFeatured    Boolean     @default(false)
+  
+  // Relations
+  categoryId    String?
+  category      Category?   @relation(fields: [categoryId], references: [id])
+
+  // --- NEW CMS FIELDS ---
+  sizes         Json?       // Will store: ["S", "M", "L"]
+  colors        Json?       // Will store: [{ name: "Red", image: "url..." }]
+  extraDetails  Json?       // Will store: { "Material": "Cotton", "Care": "Wash cold" }
+  // ----------------------
+
   createdAt     DateTime    @default(now())
   orderItems    OrderItem[]
-  // Inside the 'Product' model
 
-categoryId String?   // The foreign key
-category   Category? @relation(fields: [categoryId], references: [id])
-
-@@index([categoryId]) // Add an index for faster lookups
+  @@index([categoryId])
 }
 
 model Order {

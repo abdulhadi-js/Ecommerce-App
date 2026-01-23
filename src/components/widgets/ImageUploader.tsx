@@ -3,101 +3,101 @@
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { generateUploadSignature } from "@/actions/cloudinary";
-import { UploadCloud, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { UploadCloud, Loader2, XCircle } from "lucide-react";
 
 interface Props {
-  // We can pass an existing URL to show a preview (for the "Edit" page)
-  initialUrl?: string;
-  // The 'name' of the hidden input field for the form
+  initialUrl?: string; // For backward compatibility (single image)
   inputName?: string;
+  onUploadComplete?: (url: string) => void;
+  allowMultiple?: boolean; // New prop to enable multi-drop
 }
 
-export function ImageUploader({ initialUrl = "", inputName = "imageUrl" }: Props) {
+export function ImageUploader({ initialUrl = "", inputName = "imageUrl", onUploadComplete, allowMultiple = false }: Props) {
   const [imageUrl, setImageUrl] = useState<string>(initialUrl);
   const [status, setStatus] = useState<"idle" | "uploading" | "success" | "error">("idle");
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (!file) return;
+    if (acceptedFiles.length === 0) return;
 
     setStatus("uploading");
 
-    try {
-      // 1. Get the signature from our server action
-      const { timestamp, signature } = await generateUploadSignature();
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("api_key", process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY!);
-      formData.append("signature", signature);
-      formData.append("timestamp", timestamp.toString());
+    // Loop through all dropped files (if multiple)
+    for (const file of acceptedFiles) {
+      try {
+        const { timestamp, signature } = await generateUploadSignature();
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("api_key", process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY!);
+        formData.append("signature", signature);
+        formData.append("timestamp", timestamp.toString());
 
-      // 2. Upload directly to Cloudinary
-      const endpoint = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!}/image/upload`;
-      const response = await fetch(endpoint, {
-        method: "POST",
-        body: formData,
-      });
+        const endpoint = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!}/image/upload`;
+        const response = await fetch(endpoint, {
+          method: "POST",
+          body: formData,
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        setImageUrl(data.secure_url);
-        setStatus("success");
-      } else {
+        if (response.ok) {
+          const data = await response.json();
+          const secureUrl = data.secure_url;
+          
+          // If singular, update local preview. If multiple, the parent handles the state via callback
+          if (!allowMultiple) {
+            setImageUrl(secureUrl);
+          }
+          
+          if (onUploadComplete) onUploadComplete(secureUrl);
+        } else {
+          setStatus("error");
+        }
+      } catch (err) {
+        console.error(err);
         setStatus("error");
       }
-    } catch (err) {
-      console.error(err);
-      setStatus("error");
     }
-  }, []);
+    setStatus("success");
+    setTimeout(() => setStatus("idle"), 2000); // Reset status after 2s
+  }, [onUploadComplete, allowMultiple]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { "image/*": [] },
-    multiple: false,
+    multiple: allowMultiple,
   });
 
   return (
-    <div className="space-y-4">
+    <div className="w-full h-full">
       <div
         {...getRootProps()}
-        className={`w-full aspect-video border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-center cursor-pointer transition-colors
-        ${isDragActive ? "border-primary bg-primary/10" : "border-gray-300 hover:border-primary"}
-        ${imageUrl ? "border-green-500" : ""}`}
+        className={`w-full h-full min-h-[100px] border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-center cursor-pointer transition-all relative overflow-hidden bg-white
+        ${isDragActive ? "border-black bg-gray-50" : "border-gray-200 hover:border-black"}
+        ${status === 'error' ? "border-red-500" : ""}`}
       >
         <input {...getInputProps()} />
 
-        {status === "uploading" && (
-          <div className="flex flex-col items-center gap-2 text-muted-foreground animate-pulse">
-            <Loader2 className="w-8 h-8 animate-spin" />
-            <span>Uploading...</span>
-          </div>
-        )}
-
-        {status !== "uploading" && !imageUrl && (
-          <div className="flex flex-col items-center gap-2 text-muted-foreground">
-            <UploadCloud className="w-8 h-8" />
-            <span>{isDragActive ? "Drop the file here..." : "Drag & drop or click to upload"}</span>
-            <p className="text-xs">PNG, JPG up to 5MB</p>
-          </div>
-        )}
-        
-        {imageUrl && status !== "uploading" && (
-            <div className="p-4 relative w-full h-full">
-                <img src={imageUrl} alt="Upload preview" className="w-full h-full object-contain rounded-md" />
+        {/* If single mode and we have an image, show it. If multiple, we don't show preview here (parent does it) */}
+        {!allowMultiple && imageUrl && status !== "uploading" ? (
+            <div className="absolute inset-0 p-1">
+                <img src={imageUrl} alt="Upload preview" className="w-full h-full object-contain" />
+                <div className="absolute top-1 right-1 bg-white/80 backdrop-blur-sm text-[8px] px-2 py-1 rounded border border-gray-200 uppercase font-bold">
+                    Replace
+                </div>
+            </div>
+        ) : (
+            <div className="flex flex-col items-center gap-1 text-gray-400 p-4">
+                {status === "uploading" ? (
+                    <Loader2 className="w-6 h-6 animate-spin text-black" />
+                ) : (
+                    <UploadCloud className="w-6 h-6" />
+                )}
+                <span className="text-[10px] font-bold uppercase tracking-widest">
+                    {status === "uploading" ? "Uploading..." : allowMultiple ? "Add Images" : "Upload Image"}
+                </span>
             </div>
         )}
       </div>
 
-      {status === "error" && (
-        <div className="flex items-center gap-2 text-red-600 text-sm">
-            <XCircle className="w-4 h-4" />
-            <span>Upload failed. Please try again.</span>
-        </div>
-      )}
-      
-      {/* This hidden input will hold the final URL for the form submission */}
-      <input type="hidden" name={inputName} value={imageUrl} />
+      {inputName && !allowMultiple && <input type="hidden" name={inputName} value={imageUrl} />}
     </div>
   );
 }

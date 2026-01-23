@@ -1,6 +1,6 @@
 "use client";
 
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react"; // 1. Import getSession
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Logo } from "@/components/shared/Logo";
@@ -10,8 +10,7 @@ import Link from "next/link";
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  // For customers, the default destination is their account page.
-  const callbackUrl = searchParams.get("callbackUrl") || "/account";
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -25,6 +24,7 @@ export default function LoginPage() {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
+    // 1. Attempt Sign In
     const result = await signIn("credentials", {
       redirect: false,
       email,
@@ -35,8 +35,15 @@ export default function LoginPage() {
       setError("Invalid email or password. Please try again.");
       setLoading(false);
     } else if (result?.ok) {
-      // SUCCESS! Redirect to the callbackUrl (e.g., /checkout or the default /account).
-      router.push(callbackUrl);
+      // 2. SUCCESS! Now check WHO just logged in.
+      const session = await getSession();
+      
+      // 3. Smart Redirect Logic
+      if ((session?.user as any)?.role === "ADMIN") {
+        router.push("/admin"); // Send Admins to Dashboard
+      } else {
+        router.push(callbackUrl); // Send Customers to Home/Account
+      }
     }
   };
 
@@ -50,7 +57,6 @@ export default function LoginPage() {
           </h2>
         </div>
         
-        {/* --- THIS IS THE FULL FORM CONTENT --- */}
         <form onSubmit={handleSubmit} className="space-y-6 bg-white p-8 shadow-sm border border-gray-100 rounded-lg">
           {error && (
             <div className="bg-red-50 text-red-700 p-3 rounded-md text-sm">
@@ -60,22 +66,12 @@ export default function LoginPage() {
           
           <div className="group">
             <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Email Address</label>
-            <input
-              name="email"
-              type="email"
-              required
-              className="w-full border-b border-gray-300 py-2 focus:outline-none focus:border-black"
-            />
+            <input name="email" type="email" required className="w-full border-b border-gray-300 py-2 focus:outline-none focus:border-black" />
           </div>
 
           <div className="group">
             <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Password</label>
-            <input
-              name="password"
-              type="password"
-              required
-              className="w-full border-b border-gray-300 py-2 focus:outline-none focus:border-black"
-            />
+            <input name="password" type="password" required className="w-full border-b border-gray-300 py-2 focus:outline-none focus:border-black" />
           </div>
 
           <div>

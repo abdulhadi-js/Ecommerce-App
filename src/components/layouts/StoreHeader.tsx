@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { Logo } from "@/components/shared/Logo";
 import { ShoppingCart, User, LogOut } from "lucide-react";
-import { useSession, signOut } from "next-auth/react"; // 1. Import session hooks
+import { useSession, signOut } from "next-auth/react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/lib/store/store";
 import { useEffect, useState } from "react";
+import { MobileMenu } from "./MobileMenu";
+import { SearchBar } from "@/components/shared/SearchBar";
 
 export function StoreHeader() {
-  // 2. Get the user's session status
   const { data: session, status } = useSession();
   const items = useSelector((state: RootState) => state.cart.items);
   
@@ -17,21 +18,35 @@ export function StoreHeader() {
   useEffect(() => {
     setMounted(true);
   }, []);
+  
   const totalItems = items.reduce((total, item) => total + item.quantity, 0);
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          <Logo />
           
+          {/* LEFT: Mobile Menu & Logo */}
+          <div className="flex items-center gap-2 lg:gap-0">
+            <MobileMenu />
+            <Logo />
+          </div>
+          
+          {/* CENTER: Desktop Navigation */}
           <nav className="hidden md:flex gap-8 text-sm font-medium text-muted-foreground">
-            <Link href="/" className="hover:text-primary transition-colors">Home</Link>
-            <Link href="/products" className="hover:text-primary transition-colors">Shop All</Link>
+            <Link href="/" className="hover:text-primary transition-colors">
+              Home
+            </Link>
+            <Link href="/products" className="hover:text-primary transition-colors">
+              Collection
+            </Link>
           </nav>
 
-          <div className="flex items-center gap-5">
-            {/* Shopping Cart Link (no changes) */}
+          {/* RIGHT: Search, Cart, Auth */}
+          <div className="flex items-center gap-4">
+            
+            <SearchBar />
+
             <Link href="/cart" className="relative text-foreground hover:text-primary transition-colors">
               <ShoppingCart size={22} />
               {mounted && totalItems > 0 && (
@@ -41,12 +56,9 @@ export function StoreHeader() {
               )}
             </Link>
 
-            {/* 3. DYNAMIC AUTHENTICATION LINKS */}
             {status === "loading" ? (
-              // Show a skeleton loader while session is being fetched
               <div className="h-6 w-6 bg-gray-200 rounded-full animate-pulse"></div>
             ) : session?.user ? (
-              // If user IS logged in, show Account and Sign Out
               <>
                 <Link href="/account" className="text-foreground hover:text-primary transition-colors" title="My Account">
                   <User size={22} />
@@ -60,7 +72,6 @@ export function StoreHeader() {
                 </button>
               </>
             ) : (
-              // If user IS NOT logged in, show Sign In link
               <Link href="/login" className="text-foreground hover:text-primary transition-colors" title="Sign In">
                 <User size={22} />
               </Link>

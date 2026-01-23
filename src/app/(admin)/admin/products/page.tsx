@@ -1,93 +1,111 @@
-import { createProduct } from "@/actions/products";
-import { ImageUploader } from "@/components/widgets/ImageUploader";
-import { prisma } from "@/lib/db";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { prisma } from "@/lib/db";
+import { Plus, Search, Edit, Trash2 } from "lucide-react";
+import { deleteProduct } from "@/actions/products";
 
-export default async function NewProductPage() {
-  // 1. Fetch categories from the database
-  const categories = await prisma.category.findMany({
-    orderBy: { name: "asc" },
+// Manual Type to avoid "any" errors
+type ProductListItem = {
+  id: string;
+  name: string;
+  price: any;
+  inventory: number;
+  slug: string;
+  images: any;
+};
+
+export default async function AdminProductsPage() {
+  // Fetch products from database
+  const products = await prisma.product.findMany({
+    orderBy: { createdAt: "desc" },
   });
 
   return (
-    <div className="max-w-5xl mx-auto">
-      {/* Editorial Header */}
-      <div className="mb-12 flex items-center gap-4">
-        <Link 
-          href="/admin/products" 
-          className="text-muted-foreground hover:text-black transition-colors"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </Link>
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-serif font-medium text-black">New Entry</h1>
-          <p className="text-xs tracking-widest uppercase text-gray-400 mt-1">
-            Add a new item to your collection
-          </p>
+          <h1 className="text-3xl font-serif font-bold">Collection</h1>
+          <p className="text-muted-foreground text-sm">Manage your inventory and variants</p>
         </div>
+        <Link
+          href="/admin/products/new"
+          className="flex items-center gap-2 bg-black text-white px-6 py-3 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition shadow-lg"
+        >
+          <Plus size={16} /> Add New Piece
+        </Link>
       </div>
 
-      <form action={createProduct}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          
-          {/* LEFT COLUMN */}
-          <div className="lg:col-span-2 space-y-8">
-            <div className="group">
-              <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Product Name</label>
-              <input name="name" required type="text" placeholder="e.g. Cashmere Wool Coat" className="w-full border-b border-gray-300 py-3 text-2xl font-serif focus:outline-none focus:border-black bg-transparent" />
-            </div>
-            <div className="group">
-              <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Description</label>
-              <textarea name="description" required rows={6} placeholder="Detail the composition, fit, and origin..." className="w-full border-b border-gray-300 py-3 text-base focus:outline-none focus:border-black bg-transparent resize-none" />
-            </div>
-            <div>
-              <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Product Image</label>
-              <ImageUploader inputName="imageUrl" />
-            </div>
-          </div>
-
-          {/* RIGHT COLUMN */}
-          <div className="space-y-8 bg-gray-50/50 p-8 h-fit rounded-sm">
-            {/* CATEGORY DROPDOWN - THE NEW PART */}
-            <div>
-              <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Category</label>
-              <select
-                name="categoryId"
-                required
-                className="w-full border-b border-gray-300 py-2 text-base focus:outline-none focus:border-black bg-transparent"
-              >
-                <option value="">Select a category</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {/* PRICE INPUT */}
-             <div>
-              <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Price (USD)</label>
-              <div className="relative">
-                <span className="absolute left-0 top-3 text-gray-400">$</span>
-                <input name="price" required type="number" step="0.01" className="w-full border-b border-gray-300 py-2 pl-4 text-lg font-medium focus:outline-none focus:border-black bg-transparent" />
-              </div>
-            </div>
-            {/* INVENTORY INPUT */}
-            <div>
-              <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Inventory Stock</label>
-              <input name="inventory" required type="number" defaultValue={10} className="w-full border-b border-gray-300 py-2 text-lg font-medium focus:outline-none focus:border-black bg-transparent" />
-            </div>
-            {/* ACTION BUTTON */}
-            <div className="pt-8">
-              <button type="submit" className="w-full bg-black text-white text-xs font-bold uppercase tracking-[0.2em] py-4 hover:bg-gray-900 transition-all active:scale-[0.98]">
-                Save Product
-              </button>
-            </div>
-          </div>
-          
-        </div>
-      </form>
+      <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-gray-50 text-gray-400 border-b border-gray-100">
+            <tr>
+              <th className="px-6 py-4 font-bold uppercase tracking-tighter">Product</th>
+              <th className="px-6 py-4 font-bold uppercase tracking-tighter">Price</th>
+              <th className="px-6 py-4 font-bold uppercase tracking-tighter">Stock</th>
+              <th className="px-6 py-4 font-bold uppercase tracking-tighter text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {products.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-6 py-20 text-center text-gray-400">
+                  No products in collection yet.
+                </td>
+              </tr>
+            ) : (
+              (products as ProductListItem[]).map((product) => (
+                <tr key={product.id} className="hover:bg-gray-50/50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-4">
+                      {/* Thumbnail Preview */}
+                      <div className="h-12 w-10 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                        <img 
+                          src={Array.isArray(product.images) ? product.images[0] : '/placeholder.jpg'} 
+                          className="h-full w-full object-cover"
+                          alt="" 
+                        />
+                      </div>
+                      <div>
+                        <div className="font-bold text-gray-900">{product.name}</div>
+                        <div className="text-[10px] text-gray-400 uppercase tracking-widest">{product.slug}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 font-mono text-gray-600">
+                    ${Number(product.price).toFixed(2)}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
+                      product.inventory > 0 ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
+                    }`}>
+                      {product.inventory} In Stock
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end gap-2">
+                      <Link 
+                        href={`/admin/products/${product.id}`}
+                        className="p-2 hover:bg-black hover:text-white rounded-md transition-colors text-gray-400"
+                      >
+                        <Edit size={16} />
+                      </Link>
+                      
+                      {/* Delete Action */}
+                      <form action={async () => {
+                        "use server";
+                        await deleteProduct(product.id);
+                      }}>
+                        <button className="p-2 hover:bg-red-500 hover:text-white rounded-md transition-colors text-gray-400">
+                          <Trash2 size={16} />
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
