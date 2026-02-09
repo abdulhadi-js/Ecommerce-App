@@ -3,13 +3,6 @@
 import { prisma } from "@/lib/db";
 import { auth } from "@/auth";
 
-// 1. MANUALLY DEFINE THE PRODUCT TYPE
-// This forces TypeScript to understand what 'p' is, solving the error.
-type Product = {
-    id: string;
-    price: any; // Using 'any' to safely handle Prisma's Decimal type
-};
-
 type CartItem = {
   id: string;
   quantity: number;
@@ -29,6 +22,7 @@ export async function placeOrder(items: CartItem[], formData: FormData) {
     return { success: false, error: "Authentication required. Please log in." };
   }
   
+  // 1. Capture the details from the form
   const details: ShippingDetails = {
     fullName: formData.get("fullName") as string,
     phone: formData.get("phone") as string,
@@ -47,8 +41,8 @@ export async function placeOrder(items: CartItem[], formData: FormData) {
 
   let totalAmount = 0;
   const orderItemsData = items.map((item) => {
-    // 2. RE-ADD THE TYPE ANNOTATION, WHICH NOW WORKS
-    const product = dbProducts.find((p: Product) => p.id === item.id);
+    // Manually define Product type for TS inference
+    const product = dbProducts.find((p: { id: string; price: any }) => p.id === item.id);
     
     if (!product) throw new Error(`Security Error: Product ${item.id} not found.`);
 
@@ -63,6 +57,14 @@ export async function placeOrder(items: CartItem[], formData: FormData) {
         userId: session.user.id, 
         amountTotal: totalAmount,
         status: "PENDING",
+        
+        // --- THE FIX: Save the shipping details ---
+        shippingName: details.fullName,
+        shippingPhone: details.phone,
+        shippingAddress: details.address,
+        shippingCity: details.city,
+        // ------------------------------------------
+
         items: {
           create: orderItemsData,
         },

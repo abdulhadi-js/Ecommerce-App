@@ -44,3 +44,27 @@
     font-family: var(--font-serif), serif;
   }
 }
+
+@media print {
+  /* Hide everything by default when printing */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Only show the print area */
+  .print\:block, .print\:block * {
+    visibility: visible;
+  }
+
+  .print\:block {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  /* Hide headers and sidebars explicitly */
+  header, aside, nav {
+    display: none !important;
+  }
+}

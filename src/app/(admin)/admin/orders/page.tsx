@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/db";
 import { UpdateOrderStatus } from "@/components/admin/UpdateOrderStatus";
+import Link from "next/link"; // Import Link
 
 // --- MANUAL TYPE DEFINITIONS ---
-// This bypasses all editor caching issues.
 type UserInfo = {
     name: string | null;
     email: string;
@@ -11,7 +11,7 @@ type UserInfo = {
 type OrderWithUser = {
     id: string;
     createdAt: Date;
-    amountTotal: any; // Using 'any' for Prisma Decimal
+    amountTotal: any;
     status: string;
     user: UserInfo;
 };
@@ -61,7 +61,6 @@ export default async function AdminOrdersPage() {
                 </td>
               </tr>
             ) : (
-              // Use type casting to apply our manual type
               (orders as OrderWithUser[]).map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-6 py-4 font-mono text-xs text-foreground truncate" title={order.id}>
@@ -84,9 +83,13 @@ export default async function AdminOrdersPage() {
                     {new Date(order.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="text-primary hover:underline disabled:text-gray-400" disabled>
+                    {/* FIXED: Changed from disabled button to Link */}
+                    <Link 
+                      href={`/admin/orders/${order.id}`}
+                      className="text-black font-bold hover:underline"
+                    >
                       View
-                    </button>
+                    </Link>
                   </td>
                 </tr>
               ))

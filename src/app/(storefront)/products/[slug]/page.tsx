@@ -2,13 +2,12 @@ import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { ProductDetails } from "@/components/storefront/ProductDetails";
 import { Metadata } from "next";
+import { RelatedProducts } from "@/components/storefront/RelatedProducts"; // 1. Import
 
-// 1. Define the props type to use in both functions
 type Props = {
   params: Promise<{ slug: string }>;
 };
 
-// 2. SEO FUNCTION: Generates title, description, and social images dynamically
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   
@@ -17,9 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   });
 
   if (!product) {
-    return {
-      title: "Product Not Found",
-    };
+    return { title: "Product Not Found" };
   }
 
   const mainImage = Array.isArray(product.images) && product.images.length > 0 
@@ -28,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: `${product.name} | LuxeStore`,
-    description: product.description.substring(0, 160), // Google likes descriptions under 160 chars
+    description: product.description.substring(0, 160),
     openGraph: {
       title: product.name,
       description: product.description,
@@ -44,12 +41,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-// 3. MAIN PAGE COMPONENT
-export default async function ProductPage({ params }: Props) {
-  const { slug } = await params;
+export default async function ProductPage(props: Props) {
+  const params = await props.params;
 
   const product = await prisma.product.findUnique({
-    where: { slug },
+    where: { slug: params.slug },
+    include: {
+        category: true // We fetch category to get the ID for related products
+    }
   });
 
   if (!product) return notFound();
@@ -66,7 +65,17 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
+      
+      {/* The Main Product View */}
       <ProductDetails product={serializedProduct} />
+
+      {/* 2. The New Related Products Section */}
+      {product.categoryId && (
+        <RelatedProducts 
+            categoryId={product.categoryId} 
+            currentProductId={product.id} 
+        />
+      )}
     </div>
   );
 }

@@ -23,13 +23,57 @@ enum OrderStatus {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String?
-  password      String?
-  role          Role      @default(USER)
-  createdAt     DateTime  @default(now())
-  orders        Order[]
+  id                String    @id @default(cuid())
+  
+  // Standard NextAuth fields (REQUIRED for Google Login)
+  name              String?
+  email             String    @unique
+  emailVerified     DateTime?
+  image             String?
+  password          String?   // Optional for Google users
+  
+  // Custom fields
+  role              Role      @default(USER)
+  phoneNumber       String?   @unique
+  verificationToken String?   @unique
+  
+  // Relations for OAuth
+  accounts          Account[]
+  sessions          Session[]
+
+  createdAt         DateTime  @default(now())
+  orders            Order[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+// Optional but recommended for Auth.js
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Product {
@@ -60,13 +104,27 @@ model Product {
 
 model Order {
   id              String        @id @default(cuid())
+  
+  // --- RELATIONSHIP TO USER (This was missing) ---
   user            User          @relation(fields: [userId], references: [id])
   userId          String
+  // ---------------------------------------------
+
+  // --- RELATIONSHIP TO ITEMS (This was missing) ---
+  items           OrderItem[]
+  // ---------------------------------------------
+
   amountTotal     Decimal       @db.Decimal(10, 2)
   status          OrderStatus   @default(PENDING)
   stripePaymentId String?       @unique
+
+  // Shipping Fields
+  shippingName    String?
+  shippingPhone   String?
+  shippingAddress String?
+  shippingCity    String?
+
   createdAt       DateTime      @default(now())
-  items           OrderItem[]
 
   @@index([userId])
 }
