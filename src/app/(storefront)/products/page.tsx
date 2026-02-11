@@ -1,6 +1,15 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { ProductCard } from "@/components/storefront/ProductCard";
+import { FadeIn, FadeInStagger } from "@/components/ui/fade-in";
+import { Search } from "lucide-react";
+
+// Define types for clarity
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+}
 
 export default async function ShopAllPage(props: {
   searchParams: Promise<{ category?: string; q?: string }>;
@@ -9,18 +18,18 @@ export default async function ShopAllPage(props: {
   const selectedCategorySlug = searchParams?.category;
   const searchQuery = searchParams?.q;
 
+  // Fetch Categories
   const categories = await prisma.category.findMany({
     orderBy: { name: "asc" },
   });
 
+  // Build WHERE clause for Prisma
   const whereClause: any = {
     inventory: { gt: 0 },
   };
-
   if (selectedCategorySlug) {
     whereClause.category = { slug: selectedCategorySlug };
   }
-
   if (searchQuery) {
     whereClause.OR = [
       { name: { contains: searchQuery } },
@@ -28,42 +37,54 @@ export default async function ShopAllPage(props: {
     ];
   }
 
-  const products = await prisma.product.findMany({
+  // Fetch Products
+  const rawProducts = await prisma.product.findMany({
     where: whereClause,
+    include: { category: true }, // Include category data for display
     orderBy: { createdAt: "desc" },
   });
 
+  // SERIALIZE DATA: Convert Decimal to Number and handle potential nulls
+  const products = rawProducts.map(product => ({
+    ...product,
+    price: product.price.toNumber(), // Convert Decimal price to number
+    sizes: (product.sizes as string[]) || [],
+    colors: (product.colors as any[]) || [],
+    extraDetails: (product.extraDetails as any) || {},
+    images: (product.images as string[]) || [],
+  }));
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
-      <div className="flex flex-col items-center justify-center text-center mb-16 space-y-4">
-        <h1 className="text-4xl font-serif md:text-5xl text-gray-900">
-          The Collection
-        </h1>
-        <div className="w-12 h-[1px] bg-gray-300"></div>
-        <p className="max-w-xl text-gray-500 text-sm tracking-wide">
-          Curated pieces for the modern wardrobe. Timeless, essential, and crafted with care.
+    <div className="max-w-7xl mx-auto px-4 pb-12">
+      {/* Header */}
+      <div className="flex flex-col items-center mb-16 space-y-4">
+        <h1 className="text-5xl heading-vibrant mb-2">The Collection</h1>
+        <p className="text-muted-foreground font-medium">
+          {searchQuery 
+            ? `Results for "${searchQuery}"` 
+            : "Timeless pieces for your wardrobe."}
         </p>
       </div>
       
-      <div className="flex justify-center flex-wrap gap-4 sm:gap-8 mb-16 border-b pb-4">
+      {/* Filter Navigation */}
+      <div className="flex justify-center flex-wrap gap-4 sm:gap-8 mb-12 border-b pb-4">
         <Link
           href="/products"
-          className={`text-sm uppercase tracking-widest pb-1 ${
+          className={`text-sm font-medium transition-colors pb-1 ${
             !selectedCategorySlug && !searchQuery
-            ? "font-bold border-b-2 border-black" 
+            ? "text-black border-b-2 border-black" 
             : "text-gray-500 hover:text-black"
           }`}
         >
           All
         </Link>
-        {/* ADDED TYPE ANNOTATION HERE: (cat: any) */}
         {categories.map((cat: any) => (
           <Link
             key={cat.id}
             href={`/products?category=${cat.slug}`}
-            className={`text-sm uppercase tracking-widest pb-1 ${
+            className={`text-sm font-medium transition-colors pb-1 ${
               selectedCategorySlug === cat.slug 
-              ? "font-bold border-b-2 border-black" 
+              ? "border-b-2 border-black text-black" 
               : "text-gray-500 hover:text-black"
             }`}
           >
@@ -72,27 +93,19 @@ export default async function ShopAllPage(props: {
         ))}
       </div>
 
-      {searchQuery && (
-        <div className="mb-8 text-center">
-          <p className="text-sm text-gray-500">
-            Showing results for: <span className="font-bold text-black">&quot;{searchQuery}&quot;</span>
-          </p>
-        </div>
-      )}
-      
+      {/* Product Grid */}
       {products.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12">
-          {/* ADDED TYPE ANNOTATION HERE: (product: any) */}
+        <FadeInStagger faster className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12">
           {products.map((product: any) => (
             <ProductCard key={product.id} product={product} />
           ))}
-        </div>
+        </FadeInStagger>
       ) : (
-        <div className="text-center py-20 text-gray-400">
-          <p>No products found.</p>
-          {searchQuery && (
-             <Link href="/products" className="text-sm text-black underline mt-2 inline-block">Clear Search</Link>
-          )}
+        <div className="text-center py-20 border border-dashed rounded-xl text-gray-400">
+           <p className="font-serif italic text-lg">No pieces found.</p>
+           {searchQuery && (
+             <Link href="/products" className="text-sm text-brand font-bold mt-2 underline inline-block">Clear Filters</Link>
+           )}
         </div>
       )}
     </div>

@@ -1,16 +1,18 @@
 import Link from "next/link";
-import { LayoutDashboard, Package, ShoppingBag, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingBag, LogOut,MessageSquare } from "lucide-react";
 import { signOut } from "@/auth"; // We import the signOut function
+
 
 const navItems = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Products", href: "/admin/products", icon: ShoppingBag },
   { label: "Orders", href: "/admin/orders", icon: Package },
+  { label: "Inbox", href: "/admin/messages", icon: MessageSquare }, // ADD THIS
 ];
 
 export function AdminSidebar() {
   return (
-    <aside className="w-64 border-r border-border bg-white min-h-screen flex flex-col hidden md:flex sticky top-0 h-screen">
+    <aside className="w-64 border-r border-border bg-white min-h-screen flex flex-col md:flex sticky top-0 h-screen">
       <div className="h-16 flex items-center px-6 border-b border-border">
         <span className="text-lg font-serif font-bold tracking-tight">Luxe Admin</span>
       </div>

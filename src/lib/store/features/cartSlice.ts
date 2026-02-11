@@ -49,6 +49,20 @@ const cartSlice = createSlice({
         localStorage.setItem("redux-cart", JSON.stringify(state));
       }
     },
+    updateQuantity: (state, action: PayloadAction<{ id: string; quantity: number }>) => {
+      const { id, quantity } = action.payload;
+      if (quantity < 1) {
+        state.items = state.items.filter((item) => item.id !== id);
+      } else {
+        const item = state.items.find((i) => i.id === id);
+        if (item) {
+          item.quantity = quantity;
+        }
+      }
+      if (typeof window !== "undefined") {
+        localStorage.setItem("redux-cart", JSON.stringify(state));
+      }
+    },
     clearCart: (state) => {
       state.items = [];
       if (typeof window !== "undefined") {
@@ -58,5 +72,5 @@ const cartSlice = createSlice({
   },
 });
 
-export const { addItem, removeItem, clearCart } = cartSlice.actions;
+export const { addItem, removeItem, clearCart, updateQuantity } = cartSlice.actions;
 export default cartSlice.reducer;

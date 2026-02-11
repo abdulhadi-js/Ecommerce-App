@@ -43,6 +43,11 @@ model User {
 
   createdAt         DateTime  @default(now())
   orders            Order[]
+
+  wishlist Wishlist[]
+
+  reviews Review[]
+
 }
 
 model Account {
@@ -98,6 +103,9 @@ model Product {
 
   createdAt     DateTime    @default(now())
   orderItems    OrderItem[]
+  reviews Review[]
+  wishlist Wishlist[]
+
 
   @@index([categoryId])
 }
@@ -147,4 +155,47 @@ model Category {
   name      String    @unique
   slug      String    @unique
   products  Product[]
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int      // 1 to 5
+  comment   String   @db.Text
+  
+  // Relations
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([productId])
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String
+  message   String   @db.Text
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  // A user can only heart a specific product once
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
 }

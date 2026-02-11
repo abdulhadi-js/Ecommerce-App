@@ -1,41 +1,40 @@
+"use client"; // 1. It must be a client component to use motion
+
 import Link from "next/link";
+import { Plus } from "lucide-react";
+import { motion } from "framer-motion"; // 2. Import motion
+import { FadeInItem } from "@/components/ui/fade-in"; // 3. Import the animation variant
 
-// Define a type for our product prop for better TypeScript safety
-type Product = {
-  id: string;
-  slug: string;
-  name: string;
-  images: string[] | any; // Using 'any' for now to match Prisma's Json type
-  price: number | any; // Using 'any' to match Prisma's Decimal type
-};
+import Image from "next/image"; // Import Next.js Image
 
-export function ProductCard({ product }: { product: Product }) {
-  // Use the first image in the array as the display image
-  const displayImage = Array.isArray(product.images) ? product.images[0] : '/placeholder.jpg';
-
+export function ProductCard({ product }: { product: any }) {
   return (
-    <Link href={`/products/${product.slug}`} className="group cursor-pointer">
-      <div className="aspect-[3/4] w-full overflow-hidden bg-gray-100 mb-4 relative">
-        <img 
-          src={displayImage} 
-          alt={product.name}
-          className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
-        />
-        <div className="absolute bottom-0 left-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-             <div className="bg-white/90 backdrop-blur text-center py-2 text-xs uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
-                View Details
-             </div>
+    // 4. Wrap the Link with motion.div and apply the variant
+    <motion.div variants={FadeInItem}>
+      <Link href={`/products/${product.slug}`} className="bento-tile group block p-4 bg-surface hover:bg-surface/80 transition-colors border border-border">
+        <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-white dark:bg-gray-100 mb-4">
+          <Image 
+            src={Array.isArray(product.images) && product.images[0] ? product.images[0] : "/placeholder.jpg"} 
+            alt={product.name}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover group-hover:scale-110 transition-transform duration-500 mix-blend-multiply"
+          />
+          <div className="absolute top-3 left-3 z-10 bg-sale text-white dark:text-gray-900 text-[10px] font-black uppercase px-3 py-1 rounded-full shadow-lg">
+            New
+          </div>
         </div>
-      </div>
-      
-      <div className="space-y-1 text-center">
-        <h3 className="text-base font-medium text-gray-900 group-hover:underline decoration-1 underline-offset-4">
-          {product.name}
-        </h3>
-        <p className="text-sm text-gray-500 font-serif italic">
-          USD {Number(product.price).toFixed(2)}
-        </p>
-      </div>
-    </Link>
+        
+        <div className="space-y-1 px-1">
+          <h3 className="font-bold text-foreground text-sm truncate">{product.name}</h3>
+          <div className="flex justify-between items-center">
+              <p className="text-brand font-black text-lg">${Number(product.price).toFixed(2)}</p>
+              <div className="p-2 bg-ghost_white dark:bg-gray-800 text-brand rounded-xl group-hover:bg-brand group-hover:text-white dark:group-hover:text-gray-900 transition-colors shadow-sm">
+                  <Plus size={16} />
+              </div>
+          </div>
+        </div>
+      </Link>
+    </motion.div>
   );
 }

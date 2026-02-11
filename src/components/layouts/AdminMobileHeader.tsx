@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X, LayoutDashboard, ShoppingBag, Package, LogOut } from "lucide-react";
+import { Menu, X, LayoutDashboard, ShoppingBag, Package, LogOut, MessageSquare } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 const navItems = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Products", href: "/admin/products", icon: ShoppingBag },
   { label: "Orders", href: "/admin/orders", icon: Package },
+  { label: "Inbox", href: "/admin/messages", icon: MessageSquare }, // ADD THIS
 ];
 
 export function AdminMobileHeader() {

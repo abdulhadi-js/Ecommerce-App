@@ -4,67 +4,118 @@
 
 @layer base {
   :root {
-    /* Base: Warm Alabaster/Cream */
-    --background: 36 33% 97%; 
-    /* Text: Deep Charcoal */
-    --foreground: 240 5% 15%; 
-
-    /* Primary: Muted Dark Green or Deep Charcoal for high-end contrast */
-    --primary: 155 15% 18%; 
-    --primary-foreground: 36 33% 97%;
-
-    /* Secondary: Warm Stone/Beige */
-    --secondary: 36 20% 92%;
-    --secondary-foreground: 240 5% 15%;
-
-    /* Muted: Subtle gray-brown for less important text */
-    --muted: 36 20% 94%;
-    --muted-foreground: 240 4% 46%;
-
-    /* Accent: A subtle gold/bronze for interactions */
-    --accent: 36 30% 88%;
-    --accent-foreground: 240 5% 15%;
-
-    /* Borders: Soft stone lines */
-    --border: 36 15% 85%;
-    --input: 36 15% 85%;
-    --ring: 155 15% 18%; /* Focus ring matches primary */
+    /* --- LIGHT THEME (Default) --- */
     
-    --radius: 0.3rem;
+    /* Background: Ghost White */
+    --background: 240 29% 97%;
+    
+    /* Foreground: Charcoal Blue (Dark) */
+    --foreground: 200 26% 25%;
+    
+    /* Primary Brand: Charcoal Blue */
+    --brand: 200 26% 25%;
+    --brand-foreground: 240 29% 97%;
+    
+    /* Accent: Blue Slate */
+    --accent: 202 17% 42%;
+    --accent-foreground: 240 29% 97%;
+    
+    /* Sale/Highlight: Light Blue */
+    --sale: 177 33% 79%;
+    --sale-foreground: 200 26% 25%;
+    
+    /* Surface: Pure White for Cards */
+    --surface: 0 0% 100%;
+    
+    /* Footer Background: Charcoal Blue (Same as Brand in Light Mode) */
+    --footer-bg: 200 26% 25%;
+
+    /* Borders: Light Slate */
+    --border: 202 17% 85%;
+    --input: 202 17% 85%;
+    
+    /* Ring: Light Blue */
+    --ring: 177 33% 79%;
+    
+    /* Icon Colors */
+    --icon-primary: 200 26% 25%; /* Charcoal Blue */
+    --icon-muted: 202 17% 42%;   /* Blue Slate */
+    
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* --- DARK THEME --- */
+    
+    /* Background: Rich Slate/Dark Blue (#0f172a) */
+    --background: 222 47% 11%;
+    
+    /* Foreground: Ghost White */
+    --foreground: 240 29% 97%;
+    
+    /* Primary Brand: Light Blue (Pop against dark) */
+    --brand: 177 33% 79%; 
+    --brand-foreground: 222 47% 11%;
+    
+    /* Accent: Soft Slate */
+    --accent: 215 20% 65%;
+    --accent-foreground: 222 47% 11%;
+    
+    /* Sale/Highlight: Vibrant Teal */
+    --sale: 177 33% 79%;
+    --sale-foreground: 222 47% 11%;
+    
+    /* Surface: Lighter Slate (#1e293b) for Cards/Modals */
+    --surface: 215 32% 17%;
+    
+    /* Footer Background: Deepest Slate (#020617) */
+    --footer-bg: 222 47% 5%;
+    
+    /* Borders: Subtle Slate */
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    
+    /* Ring: Light Blue */
+    --ring: 177 33% 79%;
+    
+    /* Icon Colors */
+    --icon-primary: 240 29% 97%; /* Ghost White */
+    --icon-muted: 215 20% 65%;   /* Soft Slate */
   }
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    @apply bg-background text-foreground font-sans antialiased transition-colors duration-300;
   }
   
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-serif), serif;
+  /* WCAG Compliance: Visible Focus Indicators */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Headings */
+  h1, h2, h3, h4 {
+    @apply font-bold tracking-tight text-brand; 
+  }
+  
+  /* Global Icon Styling for Accessibility */
+  svg.lucide {
+    @apply text-current stroke-[1.5px]; /* Ensure thin, clean strokes */
   }
 }
 
-@media print {
-  /* Hide everything by default when printing */
-  body * {
-    visibility: hidden;
+@layer components {
+  .bento-tile {
+    @apply rounded-xl bg-surface border border-border shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden;
   }
   
-  /* Only show the print area */
-  .print\:block, .print\:block * {
-    visibility: visible;
-  }
-
-  .print\:block {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-  }
-
-  /* Hide headers and sidebars explicitly */
-  header, aside, nav {
-    display: none !important;
+  /* Gradient Text for special headings */
+  .heading-vibrant {
+    @apply font-bold tracking-tight bg-gradient-to-r from-brand via-accent to-sale bg-clip-text text-transparent;
   }
 }

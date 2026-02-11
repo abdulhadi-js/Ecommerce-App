@@ -1,19 +1,15 @@
 import type { Metadata } from "next";
-import { Playfair_Display, Inter } from "next/font/google";
+import { Roboto } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import StoreProvider from "./StoreProvider"; // <--- 1. Import the Provider
+import StoreProvider from "./StoreProvider"; 
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
-// 1. The Body Font (Clean Sans-Serif)
-const fontSans = Inter({
+// 1. The Main Font (Roboto)
+const fontRoboto = Roboto({
+  weight: ["100", "300", "400", "500", "700", "900"],
   subsets: ["latin"],
-  variable: "--font-sans",
-});
-
-// 2. The Heading Font (Elegant Serif)
-const fontSerif = Playfair_Display({
-  subsets: ["latin"],
-  variable: "--font-serif",
+  variable: "--font-roboto",
 });
 
 export const metadata: Metadata = {
@@ -27,18 +23,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={cn(
           "min-h-screen bg-background font-sans antialiased",
-          fontSans.variable,
-          fontSerif.variable
+          fontRoboto.variable
         )}
       >
-        {/* 2. Wrap the application logic with Redux */}
-        <StoreProvider>
-          {children}
-        </StoreProvider>
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+          {/* 2. Wrap the application logic with Redux */}
+          <StoreProvider>
+            {children}
+          </StoreProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
