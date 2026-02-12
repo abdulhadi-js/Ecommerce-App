@@ -1,8 +1,10 @@
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Package, User, MapPin, Phone } from "lucide-react";
+import { ChevronLeft, Package, User, MapPin, Phone, Calendar, CreditCard } from "lucide-react";
 import { OrderSlip } from "@/components/admin/OrderSlip";
+import { UpdateOrderStatus } from "@/components/admin/UpdateOrderStatus";
+import Image from "next/image";
 
 // --- 1. MANUAL TYPE DEFINITION ---
 // This tells TypeScript exactly what fields to expect, ignoring the stale Prisma Client.
@@ -26,6 +28,7 @@ type OrderWithDetails = {
         product: {
             name: string;
             images: any;
+            slug: string;
         };
     }[];
 };
@@ -73,112 +76,140 @@ export default async function OrderDetailsPage(props: {
     };
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <Link href="/admin/orders" className="text-muted-foreground hover:text-black transition-colors">
-                        <ChevronLeft className="w-6 h-6" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                <div className="flex flex-col gap-2">
+                    <Link 
+                        href="/admin/orders" 
+                        className="inline-flex items-center text-xs font-bold uppercase tracking-widest text-accent hover:text-foreground transition-colors"
+                    >
+                        <ChevronLeft className="w-4 h-4 mr-1" /> Back to Orders
                     </Link>
-                    <div>
-                        <h1 className="text-2xl font-serif font-bold">Order Details</h1>
-                        <p className="font-mono text-xs text-muted-foreground">{order.id}</p>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-3xl font-serif font-bold text-foreground">Order #{order.id.slice(-8)}</h1>
+                        <span className="bg-surface border border-border px-2 py-1 rounded text-xs font-mono text-accent">{order.id}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-accent">
+                        <Calendar size={14} />
+                        <span>{new Date(order.createdAt).toLocaleString(undefined, { dateStyle: 'full', timeStyle: 'short' })}</span>
                     </div>
                 </div>
                 
-                {/* Pass serialized object to client component */}
-                <OrderSlip order={serializedOrder} />
+                <div className="flex items-center gap-3">
+                    <UpdateOrderStatus 
+                        orderId={order.id} 
+                        currentStatus={order.status as any} 
+                    />
+                    <OrderSlip order={serializedOrder} />
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
                 {/* LEFT: Items */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-                        <h2 className="font-semibold mb-4 flex items-center gap-2">
-                            <Package size={18} className="text-gray-500" /> 
-                            Order Items
-                        </h2>
-                        <ul className="divide-y divide-gray-100">
+                    <div className="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 border-b border-border flex items-center gap-2 bg-accent/5">
+                            <Package size={18} className="text-brand" /> 
+                            <h2 className="text-sm font-bold uppercase tracking-widest text-foreground">Order Items ({order.items.length})</h2>
+                        </div>
+                        <div className="divide-y divide-border">
                             {order.items.map(item => (
-                                <li key={item.id} className="flex items-center gap-4 py-4">
-                                    <div className="h-20 w-16 bg-gray-100 rounded-md overflow-hidden flex-shrink-0 border border-gray-200">
-                                        <img 
+                                <div key={item.id} className="p-6 flex items-start gap-4 sm:gap-6 group hover:bg-accent/5 transition-colors">
+                                    <div className="h-20 w-20 bg-background rounded-xl overflow-hidden flex-shrink-0 border border-border relative">
+                                        <Image 
                                             src={Array.isArray(item.product.images) ? (item.product.images as string[])[0] : '/placeholder.jpg'} 
                                             alt={item.product.name} 
-                                            className="w-full h-full object-cover" 
+                                            fill
+                                            className="object-cover" 
                                         />
                                     </div>
-                                    <div className="flex-1">
-                                        <p className="font-medium text-gray-900">{item.product.name}</p>
-                                        <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                                    <div className="flex-1 min-w-0">
+                                        <Link href={`/admin/products/`} className="font-bold text-foreground hover:text-brand transition-colors text-lg truncate block">
+                                            {item.product.name}
+                                        </Link>
+                                        <p className="text-xs font-mono text-accent uppercase mt-1">{item.product.slug}</p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="font-mono text-sm text-gray-900">
+                                        <p className="font-bold text-foreground text-lg">
                                             ${(Number(item.price) * item.quantity).toFixed(2)}
                                         </p>
-                                        <p className="text-xs text-gray-400">
-                                            ${Number(item.price).toFixed(2)} each
+                                        <p className="text-xs text-accent mt-1">
+                                            {item.quantity} x ${Number(item.price).toFixed(2)}
                                         </p>
                                     </div>
-                                </li>
+                                </div>
                             ))}
-                        </ul>
-                        <div className="border-t border-gray-100 mt-4 pt-4 flex justify-between items-center">
-                            <p className="text-sm text-muted-foreground">Total Amount</p>
-                            <p className="text-2xl font-bold font-mono text-gray-900">
+                        </div>
+                        <div className="bg-accent/5 border-t border-border p-6 flex justify-between items-center">
+                            <span className="text-sm font-bold uppercase tracking-widest text-accent">Total Amount</span>
+                            <span className="text-3xl font-bold font-serif text-foreground">
                                 ${Number(order.amountTotal).toFixed(2)}
-                            </p>
+                            </span>
                         </div>
                     </div>
                 </div>
 
-                {/* RIGHT: Details */}
+                {/* RIGHT: Customer & Shipping Details */}
                 <div className="space-y-6">
                     {/* Customer */}
-                    <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-                        <h2 className="font-semibold mb-4 flex items-center gap-2">
-                            <User size={18} className="text-gray-500" /> 
-                            Customer
-                        </h2>
-                        <div className="space-y-1">
-                            <p className="font-medium text-gray-900">{order.user.name}</p>
-                            <p className="text-sm text-gray-500">{order.user.email}</p>
+                    <div className="bg-surface border border-border rounded-2xl shadow-sm p-6">
+                        <div className="flex items-center gap-2 mb-4 pb-4 border-b border-border">
+                            <User size={18} className="text-brand" /> 
+                            <h2 className="text-sm font-bold uppercase tracking-widest text-foreground">Customer</h2>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 rounded-full bg-brand/10 flex items-center justify-center text-brand font-bold">
+                                {order.user.name?.charAt(0) || "U"}
+                            </div>
+                            <div className="min-w-0">
+                                <p className="font-bold text-foreground truncate">{order.user.name}</p>
+                                <p className="text-sm text-accent truncate">{order.user.email}</p>
+                            </div>
                         </div>
                     </div>
 
                     {/* Shipping Address */}
-                    <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-                        <h2 className="font-semibold mb-4 flex items-center gap-2">
-                            <MapPin size={18} className="text-gray-500" /> 
-                            Shipping Address
-                        </h2>
-                        <address className="not-italic text-sm text-gray-600 space-y-2">
-                            <p className="font-bold text-gray-900 uppercase">
-                                {order.shippingName || "N/A"}
+                    <div className="bg-surface border border-border rounded-2xl shadow-sm p-6">
+                        <div className="flex items-center gap-2 mb-4 pb-4 border-b border-border">
+                            <MapPin size={18} className="text-brand" /> 
+                            <h2 className="text-sm font-bold uppercase tracking-widest text-foreground">Delivery Details</h2>
+                        </div>
+                        <div className="space-y-3">
+                            <p className="font-bold text-foreground text-lg">{order.shippingName}</p>
+                            <p className="text-sm text-accent leading-relaxed">
+                                {order.shippingAddress}
+                                <br />
+                                <span className="uppercase font-bold text-foreground mt-1 block">{order.shippingCity}</span>
                             </p>
-                            <p>{order.shippingAddress || "No address provided"}</p>
-                            <p className="uppercase">{order.shippingCity || ""}</p>
-                            <div className="flex items-center gap-2 pt-2 border-t border-gray-100 mt-2">
-                                <Phone size={14} className="text-gray-400" />
-                                <span className="font-mono text-gray-900">
-                                    {order.shippingPhone || "N/A"}
-                                </span>
+                            
+                            <div className="flex items-center gap-2 pt-3 border-t border-border mt-3 text-sm">
+                                <Phone size={14} className="text-brand" />
+                                <span className="font-mono text-foreground">{order.shippingPhone || "N/A"}</span>
                             </div>
-                        </address>
+                        </div>
                     </div>
 
-                    {/* Status */}
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-                        <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Current Status</p>
-                        <span className={`inline-block px-4 py-2 rounded-full text-sm font-bold ${
-                             order.status === "PENDING" ? "bg-yellow-100 text-yellow-700" :
-                             order.status === "SHIPPED" ? "bg-blue-100 text-blue-700" :
-                             order.status === "CANCELLED" ? "bg-red-100 text-red-700" :
-                             "bg-green-100 text-green-700"
-                        }`}>
-                            {order.status}
-                        </span>
+                    {/* Payment Info */}
+                    <div className="bg-surface border border-border rounded-2xl shadow-sm p-6">
+                        <div className="flex items-center gap-2 mb-4 pb-4 border-b border-border">
+                            <CreditCard size={18} className="text-brand" /> 
+                            <h2 className="text-sm font-bold uppercase tracking-widest text-foreground">Payment</h2>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm text-accent">Method</span>
+                            <span className="font-bold text-foreground">Cash on Delivery</span>
+                        </div>
+                        <div className="flex justify-between items-center mt-2">
+                            <span className="text-sm text-accent">Status</span>
+                            <span className={`text-xs font-bold uppercase px-2 py-0.5 rounded border ${
+                                order.status === "PAID" ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-900" : 
+                                "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-900"
+                            }`}>
+                                {order.status === "PAID" ? "Paid" : "Unpaid"}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>

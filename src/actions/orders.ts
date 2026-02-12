@@ -3,12 +3,25 @@
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth"; // <-- THIS WAS MISSING
+import { z } from "zod";
 
+const updateStatusSchema = z.object({
+  orderId: z.string().min(1),
+  newStatus: z.enum(["PENDING", "CONFIRMED", "PAID", "SHIPPED", "CANCELLED"]),
+});
 
-type OrderStatus = "PENDING" | "SHIPPED" | "CANCELLED";
+type OrderStatus = "PENDING" | "CONFIRMED" | "PAID" | "SHIPPED" | "CANCELLED";
 
 export async function updateOrderStatus(orderId: string, newStatus: OrderStatus) {
-  if (!orderId || !newStatus) {
+  const session = await auth();
+
+  if (!session?.user || (session.user as any).role !== "ADMIN") {
+    return { success: false, message: "Unauthorized: Admin access required" };
+  }
+
+  const validatedInput = updateStatusSchema.safeParse({ orderId, newStatus });
+
+  if (!validatedInput.success) {
     return { success: false, message: "Invalid input." };
   }
 
@@ -69,5 +82,32 @@ export async function cancelOrderByUser(orderId: string) {
   } catch (error) {
     console.error(error);
     return { success: false, message: "Server error. Please try again." };
+  }
+}
+
+export async function getRecentOrders(page: number = 1, limit: number = 5) {
+  const session = await auth();
+  if (!session?.user || (session.user as any).role !== "ADMIN") {
+    throw new Error("Unauthorized");
+  }
+
+  const skip = (page - 1) * limit;
+
+  try {
+    const orders = await prisma.order.findMany({
+      take: limit,
+      skip: skip,
+      orderBy: { createdAt: "desc" },
+      include: { user: true },
+    });
+    
+    // Serialize Decimal to number for client components
+    return orders.map(order => ({
+        ...order,
+        amountTotal: Number(order.amountTotal)
+    }));
+  } catch (error) {
+    console.error("GET_RECENT_ORDERS_ERROR", error);
+    return [];
   }
 }

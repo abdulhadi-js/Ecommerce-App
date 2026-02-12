@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import StoreProvider from "./StoreProvider"; 
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { Toaster } from "sonner";
 
 // 1. The Main Font (Roboto)
 const fontRoboto = Roboto({
@@ -39,6 +40,7 @@ export default function RootLayout({
           {/* 2. Wrap the application logic with Redux */}
           <StoreProvider>
             {children}
+            <Toaster richColors position="top-center" />
           </StoreProvider>
         </ThemeProvider>
       </body>

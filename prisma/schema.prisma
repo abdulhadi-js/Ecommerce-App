@@ -17,6 +17,7 @@ enum Role {
 
 enum OrderStatus {
   PENDING
+  CONFIRMED
   PAID
   SHIPPED
   CANCELLED
@@ -36,6 +37,10 @@ model User {
   role              Role      @default(USER)
   phoneNumber       String?   @unique
   verificationToken String?   @unique
+  
+  // Password Reset
+  resetToken        String?   @unique
+  resetTokenExpiry  DateTime?
   
   // Relations for OAuth
   accounts          Account[]

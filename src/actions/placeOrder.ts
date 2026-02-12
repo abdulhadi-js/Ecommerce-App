@@ -2,18 +2,24 @@
 
 import { prisma } from "@/lib/db";
 import { auth } from "@/auth";
+import { z } from "zod";
 
 type CartItem = {
   id: string;
   quantity: number;
 };
 
-interface ShippingDetails {
-  fullName: string;
-  phone: string;
-  address: string;
-  city: string;
-}
+const shippingSchema = z.object({
+  fullName: z.string().min(1, "Full name is required"),
+  phone: z.string().min(1, "Phone number is required"),
+  address: z.string().min(1, "Address is required"),
+  city: z.string().min(1, "City is required"),
+});
+
+const cartItemsSchema = z.array(z.object({
+  id: z.string(),
+  quantity: z.number().int().positive(),
+})).min(1, "Cart is empty");
 
 export async function placeOrder(items: CartItem[], formData: FormData) {
   const session = await auth();
@@ -22,25 +28,36 @@ export async function placeOrder(items: CartItem[], formData: FormData) {
     return { success: false, error: "Authentication required. Please log in." };
   }
   
-  // 1. Capture the details from the form
-  const details: ShippingDetails = {
-    fullName: formData.get("fullName") as string,
-    phone: formData.get("phone") as string,
-    address: formData.get("address") as string,
-    city: formData.get("city") as string,
+  // Validate shipping details
+  const shippingData = {
+    fullName: formData.get("fullName"),
+    phone: formData.get("phone"),
+    address: formData.get("address"),
+    city: formData.get("city"),
   };
 
-  if (!items || items.length === 0) {
-    return { success: false, error: "Your cart is empty." };
+  const validatedShipping = shippingSchema.safeParse(shippingData);
+
+  if (!validatedShipping.success) {
+      return { success: false, error: "Invalid shipping details." };
   }
 
-  const productIds = items.map((i) => i.id);
+  const { fullName, phone, address, city } = validatedShipping.data;
+
+  // Validate items
+  const validatedItems = cartItemsSchema.safeParse(items);
+
+  if (!validatedItems.success) {
+    return { success: false, error: "Invalid cart items." };
+  }
+
+  const productIds = validatedItems.data.map((i) => i.id);
   const dbProducts = await prisma.product.findMany({
     where: { id: { in: productIds } },
   });
 
   let totalAmount = 0;
-  const orderItemsData = items.map((item) => {
+  const orderItemsData = validatedItems.data.map((item) => {
     // Manually define Product type for TS inference
     const product = dbProducts.find((p: { id: string; price: any }) => p.id === item.id);
     
@@ -59,10 +76,10 @@ export async function placeOrder(items: CartItem[], formData: FormData) {
         status: "PENDING",
         
         // --- THE FIX: Save the shipping details ---
-        shippingName: details.fullName,
-        shippingPhone: details.phone,
-        shippingAddress: details.address,
-        shippingCity: details.city,
+        shippingName: fullName,
+        shippingPhone: phone,
+        shippingAddress: address,
+        shippingCity: city,
         // ------------------------------------------
 
         items: {

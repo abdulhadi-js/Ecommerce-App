@@ -26,14 +26,15 @@ export function CancelOrderButton({ orderId }: { orderId: string }) {
     <button
       onClick={handleCancel}
       disabled={loading}
-      className="flex items-center gap-1 text-xs font-bold uppercase tracking-tighter text-red-500 hover:text-red-700 disabled:opacity-50 transition-colors"
+      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/10 text-xs font-bold uppercase tracking-wider text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:border-red-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+      aria-label="Cancel Order"
     >
       {loading ? (
-        <Loader2 className="w-3 h-3 animate-spin" />
+        <Loader2 className="w-3.5 h-3.5 animate-spin" />
       ) : (
         <XCircle size={14} />
       )}
-      Cancel Order
+      <span>Cancel Order</span>
     </button>
   );
 }

@@ -3,163 +3,243 @@
 import { useState } from "react";
 import { registerUser } from "@/actions/users";
 import { Logo } from "@/components/shared/Logo";
-import { Loader2, Phone, Mail, User, Lock, ArrowRight } from "lucide-react";
+import { Loader2, Phone, Mail, User, Lock, ArrowRight, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { motion } from "framer-motion";
+
+// Zod Schema matching backend requirements
+const registerSchema = z.object({
+  name: z.string().min(2, "Full name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  phoneNumber: z.string().min(10, "Phone number must be valid (e.g., 03XXXXXXXXX)"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
-  const [error, setError] = useState<string | null>(null);
+  const [globalError, setGlobalError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setLoading(true);
-    setError(null);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+  });
 
-    const formData = new FormData(event.currentTarget);
+  const onSubmit = async (data: RegisterFormValues) => {
+    setGlobalError(null);
+
+    // Create FormData manually to pass to Server Action
+    const formData = new FormData();
+    formData.append("name", data.name);
+    formData.append("email", data.email);
+    formData.append("phoneNumber", data.phoneNumber);
+    formData.append("password", data.password);
+
     const result = await registerUser(formData);
 
     if (!result.success) {
-      setError(result.message);
-      setLoading(false);
+      setGlobalError(result.message || "Registration failed");
     } else {
       setSuccess(true);
-      setLoading(false);
     }
   };
 
   if (success) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 text-center">
-        <div className="max-w-md space-y-6 animate-in fade-in zoom-in duration-500">
-          <div className="flex justify-center mb-8">
-            <Logo />
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="max-w-md w-full bg-surface p-8 rounded-2xl shadow-xl border border-border space-y-6"
+        >
+          <div className="flex justify-center mb-4">
+            <div className="h-16 w-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+              <CheckCircle2 size={32} className="text-green-600 dark:text-green-400" />
+            </div>
           </div>
-          <h2 className="text-3xl font-serif text-foreground">Verify Your Identity</h2>
-          <p className="text-muted-foreground leading-relaxed">
+          
+          <h2 className="text-2xl font-bold text-foreground">Verify Your Identity</h2>
+          
+          <p className="text-accent leading-relaxed">
             A verification link has been sent to your email. Please check your inbox 
-            (and spam folder) to activate your LuxeStore account.
+            (and spam folder) to activate your account.
           </p>
-          <div className="pt-6">
+          
+          <div className="pt-4">
             <Link 
               href="/login" 
-              className="text-xs uppercase tracking-[0.2em] font-bold border-b-2 border-primary pb-1 hover:text-primary/70 transition-colors"
+              className="inline-flex items-center justify-center w-full py-3 px-4 bg-brand text-brand-foreground font-bold rounded-xl hover:bg-brand/90 transition-all shadow-md"
             >
               Go to Login
             </Link>
           </div>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-12">
-      <div className="w-full max-w-[450px] space-y-10">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-12 transition-colors duration-300">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-[450px] bg-surface p-8 sm:p-10 rounded-2xl shadow-2xl border border-border"
+      >
         
         {/* Brand Header */}
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-4 mb-8">
           <div className="flex justify-center mb-2">
             <Logo />
           </div>
-          <h1 className="text-3xl font-serif text-foreground tracking-tight">
-            Create your account
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">
+            Create account
           </h1>
-          <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
-            Join the LuxeStore community
+          <p className="text-sm text-accent">
+            Join our community today
           </p>
         </div>
 
         {/* Signup Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <div className="bg-red-50 border border-red-100 text-red-600 p-4 text-sm rounded-sm animate-in slide-in-from-top-2">
-              {error}
-            </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          {globalError && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="flex items-center gap-2 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 p-4 rounded-xl text-sm border border-red-200 dark:border-red-900/30"
+            >
+              <AlertCircle size={18} />
+              <span>{globalError}</span>
+            </motion.div>
           )}
 
-          <div className="space-y-5">
-            {/* Full Name */}
-            <div className="relative group">
-              <label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground group-focus-within:text-primary transition-colors">
-                Full Name
-              </label>
-              <div className="flex items-center border-b border-border group-focus-within:border-primary transition-colors">
-                <User size={16} className="text-muted-foreground mr-3" />
-                <input 
-                  name="name" 
-                  type="text" 
-                  required 
-                  placeholder="e.g. Abdullah Khan"
-                  className="w-full py-3 bg-transparent text-sm focus:outline-none placeholder:text-gray-300" 
-                />
+          {/* Full Name */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              Full Name
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-icon-muted">
+                <User size={18} />
               </div>
+              <input 
+                {...register("name")}
+                type="text" 
+                placeholder="e.g. John Doe"
+                className={`block w-full pl-10 pr-3 py-3 border ${
+                  errors.name 
+                      ? "border-red-500 focus:ring-red-500 focus:border-red-500" 
+                      : "border-input focus:ring-brand focus:border-brand"
+                } bg-background text-foreground rounded-xl text-sm shadow-sm placeholder-icon-muted focus:outline-none focus:ring-2 transition-all`}
+              />
             </div>
-
-            {/* Email Address */}
-            <div className="relative group">
-              <label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground group-focus-within:text-primary transition-colors">
-                Email Address
-              </label>
-              <div className="flex items-center border-b border-border group-focus-within:border-primary transition-colors">
-                <Mail size={16} className="text-muted-foreground mr-3" />
-                <input 
-                  name="email" 
-                  type="email" 
-                  required 
-                  placeholder="name@example.com"
-                  className="w-full py-3 bg-transparent text-sm focus:outline-none placeholder:text-gray-300" 
-                />
-              </div>
-            </div>
-
-            {/* Phone Number - ESSENTIAL FIELD */}
-            <div className="relative group">
-              <label className="text-[10px] uppercase font-bold tracking-widest text-primary block">
-                Phone Number <span className="text-muted-foreground font-normal">(Required for delivery)</span>
-              </label>
-              <div className="flex items-center border-b border-primary/30 group-focus-within:border-primary transition-colors">
-                <Phone size={16} className="text-primary mr-3" />
-                <input 
-                  name="phoneNumber" 
-                  type="tel" 
-                  required 
-                  placeholder="03XXXXXXXXX" 
-                  className="w-full py-3 bg-transparent text-sm focus:outline-none placeholder:text-gray-300" 
-                />
-              </div>
-              <p className="text-[9px] text-muted-foreground mt-1 italic">We use this to coordinate your Cash on Delivery arrival.</p>
-            </div>
-
-            {/* Password */}
-            <div className="relative group">
-              <label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground group-focus-within:text-primary transition-colors">
-                Password
-              </label>
-              <div className="flex items-center border-b border-border group-focus-within:border-primary transition-colors">
-                <Lock size={16} className="text-muted-foreground mr-3" />
-                <input 
-                  name="password" 
-                  type="password" 
-                  required 
-                  placeholder="Min. 8 characters"
-                  className="w-full py-3 bg-transparent text-sm focus:outline-none placeholder:text-gray-300" 
-                />
-              </div>
-            </div>
+            {errors.name && (
+              <p className="mt-1 text-sm text-red-500 pl-1">{errors.name.message}</p>
+            )}
           </div>
 
-          <div className="pt-4">
+          {/* Email Address */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              Email Address
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-icon-muted">
+                <Mail size={18} />
+              </div>
+              <input 
+                {...register("email")}
+                type="email" 
+                placeholder="name@example.com"
+                className={`block w-full pl-10 pr-3 py-3 border ${
+                  errors.email 
+                      ? "border-red-500 focus:ring-red-500 focus:border-red-500" 
+                      : "border-input focus:ring-brand focus:border-brand"
+                } bg-background text-foreground rounded-xl text-sm shadow-sm placeholder-icon-muted focus:outline-none focus:ring-2 transition-all`}
+              />
+            </div>
+            {errors.email && (
+              <p className="mt-1 text-sm text-red-500 pl-1">{errors.email.message}</p>
+            )}
+          </div>
+
+          {/* Phone Number */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              Phone Number <span className="text-xs text-accent font-normal">(Required for delivery)</span>
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-icon-muted">
+                <Phone size={18} />
+              </div>
+              <input 
+                {...register("phoneNumber")}
+                type="tel" 
+                placeholder="03XXXXXXXXX"
+                className={`block w-full pl-10 pr-3 py-3 border ${
+                  errors.phoneNumber
+                      ? "border-red-500 focus:ring-red-500 focus:border-red-500" 
+                      : "border-input focus:ring-brand focus:border-brand"
+                } bg-background text-foreground rounded-xl text-sm shadow-sm placeholder-icon-muted focus:outline-none focus:ring-2 transition-all`}
+              />
+            </div>
+            {errors.phoneNumber && (
+              <p className="mt-1 text-sm text-red-500 pl-1">{errors.phoneNumber.message}</p>
+            )}
+          </div>
+
+          {/* Password */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              Password
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-icon-muted">
+                <Lock size={18} />
+              </div>
+              <input 
+                {...register("password")}
+                type={showPassword ? "text" : "password"}
+                placeholder="Min. 8 characters"
+                className={`block w-full pl-10 pr-10 py-3 border ${
+                  errors.password
+                      ? "border-red-500 focus:ring-red-500 focus:border-red-500" 
+                      : "border-input focus:ring-brand focus:border-brand"
+                } bg-background text-foreground rounded-xl text-sm shadow-sm placeholder-icon-muted focus:outline-none focus:ring-2 transition-all`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-icon-muted hover:text-foreground transition-colors"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            {errors.password && (
+              <p className="mt-1 text-sm text-red-500 pl-1">{errors.password.message}</p>
+            )}
+          </div>
+
+          <div className="pt-2">
             <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-primary text-primary-foreground py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-primary/90 transition-all flex items-center justify-center gap-3 disabled:bg-gray-300 active:scale-[0.98] shadow-sm"
+              disabled={isSubmitting}
+              className="w-full flex justify-center items-center py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-brand-foreground bg-brand hover:bg-brand/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-[0.98]"
             >
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+              {isSubmitting ? (
+                <Loader2 className="animate-spin h-5 w-5" />
               ) : (
                 <>
-                  Create Account <ArrowRight size={14} />
+                  Create Account <ArrowRight size={18} className="ml-2" />
                 </>
               )}
             </button>
@@ -167,23 +247,23 @@ export default function RegisterPage() {
         </form>
 
         {/* Footer Link */}
-        <div className="text-center pt-4">
-          <p className="text-sm text-muted-foreground">
-            Existing member?{" "}
+        <div className="text-center pt-6">
+          <p className="text-sm text-accent">
+            Already have an account?{" "}
             <Link 
               href="/login" 
-              className="text-foreground font-bold hover:underline underline-offset-4 decoration-primary"
+              className="font-semibold text-brand hover:text-brand/80 hover:underline transition-colors"
             >
-              Sign in here
+              Sign in
             </Link>
           </p>
         </div>
 
         {/* Bottom Minimal Info */}
-        <div className="text-[10px] text-center text-gray-400 uppercase tracking-widest pt-10">
+        <div className="text-[10px] text-center text-icon-muted uppercase tracking-widest pt-8 opacity-60">
           Secure Registration &bull; SSL Encrypted
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

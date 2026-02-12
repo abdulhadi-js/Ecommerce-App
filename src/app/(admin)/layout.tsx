@@ -23,7 +23,7 @@ export default async function AdminLayout({
   // If they are a logged-in Admin, show the dashboard.
   return (
     // UPDATED: flex-col for mobile (header on top), md:flex-row for desktop (sidebar on left)
-    <div className="flex min-h-screen bg-gray-50/50 flex-col md:flex-row">
+    <div className="flex min-h-screen bg-background flex-col md:flex-row">
       
       {/* 1. Mobile Header (Visible only on small screens) */}
       <AdminMobileHeader />

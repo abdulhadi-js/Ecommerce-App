@@ -1,15 +1,11 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { ProductCard } from "@/components/storefront/ProductCard";
+import { CategorySelection } from "@/components/storefront/CategorySelection";
 import { FadeIn, FadeInStagger } from "@/components/ui/fade-in";
-import { Search } from "lucide-react";
+import { Search, PackageOpen } from "lucide-react";
 
-// Define types for clarity
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-}
+export const dynamic = "force-dynamic";
 
 export default async function ShopAllPage(props: {
   searchParams: Promise<{ category?: string; q?: string }>;
@@ -55,59 +51,96 @@ export default async function ShopAllPage(props: {
   }));
 
   return (
-    <div className="max-w-7xl mx-auto px-4 pb-12">
-      {/* Header */}
-      <div className="flex flex-col items-center mb-16 space-y-4">
-        <h1 className="text-5xl heading-vibrant mb-2">The Collection</h1>
-        <p className="text-muted-foreground font-medium">
-          {searchQuery 
-            ? `Results for "${searchQuery}"` 
-            : "Timeless pieces for your wardrobe."}
-        </p>
-      </div>
-      
-      {/* Filter Navigation */}
-      <div className="flex justify-center flex-wrap gap-4 sm:gap-8 mb-12 border-b pb-4">
-        <Link
-          href="/products"
-          className={`text-sm font-medium transition-colors pb-1 ${
-            !selectedCategorySlug && !searchQuery
-            ? "text-black border-b-2 border-black" 
-            : "text-gray-500 hover:text-black"
-          }`}
-        >
-          All
-        </Link>
-        {categories.map((cat: any) => (
-          <Link
-            key={cat.id}
-            href={`/products?category=${cat.slug}`}
-            className={`text-sm font-medium transition-colors pb-1 ${
-              selectedCategorySlug === cat.slug 
-              ? "border-b-2 border-black text-black" 
-              : "text-gray-500 hover:text-black"
-            }`}
-          >
-            {cat.name}
-          </Link>
-        ))}
-      </div>
-
-      {/* Product Grid */}
-      {products.length > 0 ? (
-        <FadeInStagger faster className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12">
-          {products.map((product: any) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </FadeInStagger>
-      ) : (
-        <div className="text-center py-20 border border-dashed rounded-xl text-gray-400">
-           <p className="font-serif italic text-lg">No pieces found.</p>
-           {searchQuery && (
-             <Link href="/products" className="text-sm text-brand font-bold mt-2 underline inline-block">Clear Filters</Link>
-           )}
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-8 sm:pt-12">
+        
+        {/* Hero / Header Section */}
+        <div className="flex flex-col items-center mb-10 sm:mb-16 space-y-4 text-center">
+          <FadeIn>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif text-foreground tracking-tight mb-4">
+              The Collection
+            </h1>
+            <p className="text-accent text-lg max-w-xl mx-auto leading-relaxed">
+              {searchQuery 
+                ? `Showing results for "${searchQuery}"` 
+                : "Discover timeless pieces crafted for your unique style."}
+            </p>
+          </FadeIn>
         </div>
-      )}
+        
+        {/* Controls: Search & Filter */}
+        <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-md py-4 -mx-4 px-4 sm:mx-0 sm:px-0 mb-8 border-b border-border transition-all duration-300">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
+                
+                {/* Mobile Search (Visible only on small screens) */}
+                <div className="relative md:hidden w-full">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-icon-muted" size={18} />
+                    <form action="/products" method="GET">
+                        <input 
+                            name="q"
+                            defaultValue={searchQuery}
+                            type="search" 
+                            placeholder="Search products..." 
+                            className="w-full pl-10 pr-4 py-3 bg-surface border border-input rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all shadow-sm"
+                        />
+                    </form>
+                </div>
+
+                {/* Categories Navigation - Accordion on Mobile, Tabs on Desktop */}
+                <div className="w-full md:w-auto overflow-hidden">
+                   <CategorySelection 
+                      categories={categories} 
+                      selectedCategory={selectedCategorySlug} 
+                   />
+                </div>
+
+                {/* Desktop Search */}
+                <div className="hidden md:flex items-center gap-4">
+                     <div className="relative w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-icon-muted" size={16} />
+                        <form action="/products" method="GET">
+                            <input 
+                                name="q"
+                                defaultValue={searchQuery}
+                                type="search" 
+                                placeholder="Search collection..." 
+                                className="w-full pl-9 pr-4 py-2 bg-surface border border-input rounded-full text-sm focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-all hover:bg-accent/5"
+                            />
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {/* Product Grid */}
+        {products.length > 0 ? (
+          <FadeInStagger faster className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </FadeInStagger>
+        ) : (
+          <FadeIn>
+            <div className="flex flex-col items-center justify-center py-32 text-center bg-surface/50 rounded-3xl border border-dashed border-border mx-auto max-w-2xl mt-8">
+               <div className="bg-background p-4 rounded-full shadow-sm mb-4">
+                 <PackageOpen size={48} className="text-icon-muted" />
+               </div>
+               <h3 className="text-xl font-bold text-foreground mb-2">No products found</h3>
+               <p className="text-accent max-w-xs mx-auto mb-6">
+                 We couldn&apos;t find any items matching your criteria. Try different keywords or clear your filters.
+               </p>
+               {(searchQuery || selectedCategorySlug) && (
+                 <Link 
+                    href="/products" 
+                    className="inline-flex items-center justify-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-full text-brand-foreground bg-brand hover:bg-brand/90 transition-colors shadow-sm"
+                 >
+                   Clear Filters
+                 </Link>
+               )}
+            </div>
+          </FadeIn>
+        )}
+      </div>
     </div>
   );
 }
