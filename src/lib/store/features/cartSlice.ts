@@ -69,8 +69,36 @@ const cartSlice = createSlice({
          localStorage.removeItem("redux-cart");
       }
     },
+    syncCart: (state, action: PayloadAction<{ id: string; name: string; price: number; image?: string; inventory: number }[]>) => {
+      const serverItems = action.payload;
+      // Filter out items that no longer exist on the server
+      state.items = state.items.filter(localItem => 
+        serverItems.some(serverItem => serverItem.id === localItem.id)
+      );
+
+      // Update remaining items with fresh data
+      state.items.forEach(localItem => {
+        const serverItem = serverItems.find(s => s.id === localItem.id);
+        if (serverItem) {
+          localItem.name = serverItem.name;
+          localItem.price = serverItem.price;
+          localItem.image = serverItem.image;
+          // Ensure quantity doesn't exceed available inventory
+          if (localItem.quantity > serverItem.inventory) {
+             localItem.quantity = serverItem.inventory;
+          }
+        }
+      });
+      
+      // Remove items with 0 quantity (if stock ran out)
+      state.items = state.items.filter(item => item.quantity > 0);
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("redux-cart", JSON.stringify(state));
+      }
+    },
   },
 });
 
-export const { addItem, removeItem, clearCart, updateQuantity } = cartSlice.actions;
+export const { addItem, removeItem, clearCart, updateQuantity, syncCart } = cartSlice.actions;
 export default cartSlice.reducer;

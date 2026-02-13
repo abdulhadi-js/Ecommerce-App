@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LayoutDashboard, Package, ShoppingBag, LogOut, MessageSquare, Menu, X, Settings } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingBag, LogOut, MessageSquare, Menu, X, Settings, RotateCcw } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { signOut } from "next-auth/react";
@@ -12,6 +12,7 @@ const navItems = [
   { label: "Overview", href: "/admin", icon: LayoutDashboard },
   { label: "Products", href: "/admin/products", icon: ShoppingBag },
   { label: "Orders", href: "/admin/orders", icon: Package },
+  { label: "Returns", href: "/admin/returns", icon: RotateCcw },
   { label: "Inbox", href: "/admin/messages", icon: MessageSquare },
 ];
 

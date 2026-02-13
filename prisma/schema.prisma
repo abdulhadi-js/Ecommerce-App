@@ -110,6 +110,7 @@ model Product {
   orderItems    OrderItem[]
   reviews Review[]
   wishlist Wishlist[]
+  returns       ReturnRequest[]
 
 
   @@index([categoryId])
@@ -138,6 +139,7 @@ model Order {
   shippingCity    String?
 
   createdAt       DateTime      @default(now())
+  returns         ReturnRequest[]
 
   @@index([userId])
 }
@@ -153,6 +155,30 @@ model OrderItem {
 
   @@index([orderId])
   @@index([productId])
+}
+
+model ReturnRequest {
+  id          String       @id @default(cuid())
+  orderId     String
+  order       Order        @relation(fields: [orderId], references: [id])
+  productId   String
+  product     Product      @relation(fields: [productId], references: [id])
+  reason      String       @db.Text
+  quantity    Int
+  phoneNumber String?      // Contact for return coordination
+  status      ReturnStatus @default(PENDING)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+enum ReturnStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
 }
 
 model Category {

@@ -5,19 +5,12 @@ import { CategorySelection } from "@/components/storefront/CategorySelection";
 import { FadeIn, FadeInStagger } from "@/components/ui/fade-in";
 import { Search, PackageOpen } from "lucide-react";
 
-export const dynamic = "force-dynamic";
-
 export default async function ShopAllPage(props: {
   searchParams: Promise<{ category?: string; q?: string }>;
 }) {
   const searchParams = await props.searchParams;
   const selectedCategorySlug = searchParams?.category;
   const searchQuery = searchParams?.q;
-
-  // Fetch Categories
-  const categories = await prisma.category.findMany({
-    orderBy: { name: "asc" },
-  });
 
   // Build WHERE clause for Prisma
   const whereClause: any = {
@@ -33,12 +26,17 @@ export default async function ShopAllPage(props: {
     ];
   }
 
-  // Fetch Products
-  const rawProducts = await prisma.product.findMany({
-    where: whereClause,
-    include: { category: true }, // Include category data for display
-    orderBy: { createdAt: "desc" },
-  });
+  // Fetch Categories and Products in parallel
+  const [categories, rawProducts] = await Promise.all([
+    prisma.category.findMany({
+        orderBy: { name: "asc" },
+    }),
+    prisma.product.findMany({
+        where: whereClause,
+        include: { category: true }, // Include category data for display
+        orderBy: { createdAt: "desc" },
+    })
+  ]);
 
   // SERIALIZE DATA: Convert Decimal to Number and handle potential nulls
   const products = rawProducts.map(product => ({

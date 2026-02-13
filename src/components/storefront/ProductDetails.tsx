@@ -6,7 +6,7 @@ import { useDispatch } from "react-redux";
 import { addItem } from "@/lib/store/features/cartSlice";
 import { useRouter } from "next/navigation";
 import { ImageGallery } from "./ImageGallery";
-import { Accordion } from "./Accordion";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./Accordion";
 import { ReviewForm } from "./ReviewForm";
 import { Button } from "@/components/ui/button"; // Import atomic Button
 import { cn } from "@/lib/utils";
@@ -177,19 +177,29 @@ export function ProductDetails({ product }: { product: any }) {
 
           <div className="pt-8 space-y-4">
             {Object.keys(dbDetails).length > 0 && (
-              <Accordion title="Composition & Details">
-                <div className="grid grid-cols-2 gap-4 py-2">
-                  {Object.entries(dbDetails).map(([key, value]) => (
-                    <div key={key}>
-                      <p className="text-[10px] uppercase font-bold text-accent">{key}</p>
-                      <p className="text-sm text-foreground">{value}</p>
+              <Accordion type="single" collapsible>
+                <AccordionItem value="details">
+                  <AccordionTrigger>Composition & Details</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="grid grid-cols-2 gap-4 py-2">
+                      {Object.entries(dbDetails).map(([key, value]) => (
+                        <div key={key}>
+                          <p className="text-[10px] uppercase font-bold text-accent">{key}</p>
+                          <p className="text-sm text-foreground">{value}</p>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </AccordionContent>
+                </AccordionItem>
               </Accordion>
             )}
-            <Accordion title="Shipping & Returns">
-              <p className="text-sm leading-relaxed text-foreground/70">Complimentary standard shipping on all orders. Returns may be initiated within 14 days of delivery.</p>
+            <Accordion type="single" collapsible>
+              <AccordionItem value="shipping">
+                <AccordionTrigger>Shipping & Returns</AccordionTrigger>
+                <AccordionContent>
+                  <p className="text-sm leading-relaxed text-foreground/70">Complimentary standard shipping on all orders. Returns may be initiated within 14 days of delivery.</p>
+                </AccordionContent>
+              </AccordionItem>
             </Accordion>
           </div>
         </div>

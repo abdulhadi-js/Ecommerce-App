@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/auth"; // <-- THIS WAS MISSING
+import { checkAdmin, checkAuth } from "@/lib/auth-guards";
 import { z } from "zod";
 
 const updateStatusSchema = z.object({
@@ -13,11 +13,7 @@ const updateStatusSchema = z.object({
 type OrderStatus = "PENDING" | "CONFIRMED" | "PAID" | "SHIPPED" | "CANCELLED";
 
 export async function updateOrderStatus(orderId: string, newStatus: OrderStatus) {
-  const session = await auth();
-
-  if (!session?.user || (session.user as any).role !== "ADMIN") {
-    return { success: false, message: "Unauthorized: Admin access required" };
-  }
+  await checkAdmin();
 
   const validatedInput = updateStatusSchema.safeParse({ orderId, newStatus });
 
@@ -43,12 +39,7 @@ export async function updateOrderStatus(orderId: string, newStatus: OrderStatus)
 }
 
 export async function cancelOrderByUser(orderId: string) {
-  const session = await auth();
-
-  // 1. Security Check: Is user logged in?
-  if (!session?.user?.id) {
-    return { success: false, message: "You must be logged in." };
-  }
+  const session = await checkAuth();
 
   try {
     // 2. Fetch the order to verify ownership and status
@@ -86,10 +77,7 @@ export async function cancelOrderByUser(orderId: string) {
 }
 
 export async function getRecentOrders(page: number = 1, limit: number = 5) {
-  const session = await auth();
-  if (!session?.user || (session.user as any).role !== "ADMIN") {
-    throw new Error("Unauthorized");
-  }
+  await checkAdmin();
 
   const skip = (page - 1) * limit;
 

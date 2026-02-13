@@ -2,13 +2,14 @@
 
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/lib/store/store";
-import { removeItem, clearCart, updateQuantity } from "@/lib/store/features/cartSlice";
+import { removeItem, clearCart, updateQuantity, syncCart } from "@/lib/store/features/cartSlice";
 import { Trash2, ArrowRight, Minus, Plus, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { refreshCartItems } from "@/actions/products";
 
 export function CartSummary() {
   const items = useSelector((state: RootState) => state.cart.items);
@@ -17,6 +18,18 @@ export function CartSummary() {
 
   useEffect(() => {
     setMounted(true);
+    
+    // Check for updates when the component mounts
+    if (items.length > 0) {
+      const itemIds = items.map(item => item.id);
+      refreshCartItems(itemIds).then((freshData) => {
+        if (freshData && freshData.length > 0) {
+          dispatch(syncCart(freshData));
+        }
+      });
+    }
+    // We intentionally omit 'items' and 'dispatch' to run this only on mount/initial load
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!mounted) return null;

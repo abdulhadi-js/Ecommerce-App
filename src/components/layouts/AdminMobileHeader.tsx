@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X, LayoutDashboard, ShoppingBag, Package, LogOut, MessageSquare } from "lucide-react";
+import { Menu, X, LayoutDashboard, ShoppingBag, Package, LogOut, MessageSquare, RotateCcw } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Logo } from "@/components/shared/Logo";
@@ -12,6 +12,7 @@ const navItems = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Products", href: "/admin/products", icon: ShoppingBag },
   { label: "Orders", href: "/admin/orders", icon: Package },
+  { label: "Returns", href: "/admin/returns", icon: RotateCcw },
   { label: "Inbox", href: "/admin/messages", icon: MessageSquare },
 ];
 

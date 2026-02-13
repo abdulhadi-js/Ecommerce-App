@@ -42,6 +42,14 @@
     --icon-muted: 202 17% 42%;   /* Blue Slate */
     
     --radius: 0.5rem;
+
+    /* --- SUSTAINABILITY PALETTE (WCAG AA Compliant) --- */
+    /* Primary: Deep Forest Green (#1F3A2D) */
+    --sust-primary: 150 30% 17%;
+    /* Secondary: Alabaster/Sand (#F2EFE9) */
+    --sust-secondary: 40 20% 93%;
+    /* Accent: Buff/Terracotta (#D4A373) */
+    --sust-accent: 30 53% 64%;
   }
 
   .dark {
@@ -81,6 +89,14 @@
     /* Icon Colors */
     --icon-primary: 240 29% 97%; /* Ghost White */
     --icon-muted: 215 20% 65%;   /* Soft Slate */
+
+    /* --- SUSTAINABILITY PALETTE (Dark Mode Adjustments) --- */
+    /* Primary: Slightly lighter Forest Green for visibility on dark bg if needed, but usually we use this as BG */
+    --sust-primary: 150 30% 12%; 
+    /* Secondary: Slightly dimmer Sand */
+    --sust-secondary: 40 10% 85%;
+    /* Accent: Brighter Terracotta for pop */
+    --sust-accent: 30 60% 60%;
   }
 }
 

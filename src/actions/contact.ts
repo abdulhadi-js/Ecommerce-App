@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import nodemailer from "nodemailer";
+import { transporter } from "@/lib/mail";
 import { revalidatePath } from "next/cache"; // <-- THIS WAS MISSING
 
 /**
@@ -24,16 +24,6 @@ export async function submitContactForm(formData: FormData) {
     });
 
     // 2. Send Email Notification to Admin
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: {
-        user: process.env.EMAIL_SERVER_USER,
-        pass: process.env.EMAIL_SERVER_PASSWORD,
-      },
-    });
-
     await transporter.sendMail({
       from: process.env.EMAIL_FROM,
       to: process.env.EMAIL_SERVER_USER,

@@ -57,15 +57,26 @@ export async function placeOrder(items: CartItem[], formData: FormData) {
   });
 
   let totalAmount = 0;
+  
+  // Use a map for O(1) lookups
+  const productMap = new Map(dbProducts.map(p => [p.id, p]));
+
   const orderItemsData = validatedItems.data.map((item) => {
-    // Manually define Product type for TS inference
-    const product = dbProducts.find((p: { id: string; price: any }) => p.id === item.id);
+    const product = productMap.get(item.id);
     
-    if (!product) throw new Error(`Security Error: Product ${item.id} not found.`);
+    if (!product) {
+        // This should technically be caught by validation or earlier checks, but good for safety
+        throw new Error(`Security Error: Product ${item.id} not found.`);
+    }
 
     const price = Number(product.price);
     totalAmount += price * item.quantity;
-    return { productId: product.id, quantity: item.quantity, price: product.price };
+    
+    return { 
+        productId: product.id, 
+        quantity: item.quantity, 
+        price: product.price // Store the original Decimal price
+    };
   });
   
   try {

@@ -69,8 +69,8 @@ export function ImageUploader({ initialUrl = "", inputName = "imageUrl", onUploa
     <div className="w-full h-full">
       <div
         {...getRootProps()}
-        className={`w-full h-full min-h-[100px] border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-center cursor-pointer transition-all relative overflow-hidden bg-white
-        ${isDragActive ? "border-black bg-gray-50" : "border-gray-200 hover:border-black"}
+        className={`w-full h-full min-h-[100px] border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-center cursor-pointer transition-all relative overflow-hidden bg-surface
+        ${isDragActive ? "border-brand bg-accent/5" : "border-border hover:border-brand"}
         ${status === 'error' ? "border-red-500" : ""}`}
       >
         <input {...getInputProps()} />
@@ -79,14 +79,14 @@ export function ImageUploader({ initialUrl = "", inputName = "imageUrl", onUploa
         {!allowMultiple && imageUrl && status !== "uploading" ? (
             <div className="absolute inset-0 p-1">
                 <img src={imageUrl} alt="Upload preview" className="w-full h-full object-contain" />
-                <div className="absolute top-1 right-1 bg-white/80 backdrop-blur-sm text-[8px] px-2 py-1 rounded border border-gray-200 uppercase font-bold">
+                <div className="absolute top-1 right-1 bg-surface/80 backdrop-blur-sm text-[8px] px-2 py-1 rounded border border-border uppercase font-bold text-foreground">
                     Replace
                 </div>
             </div>
         ) : (
-            <div className="flex flex-col items-center gap-1 text-gray-400 p-4">
+            <div className="flex flex-col items-center gap-1 text-accent p-4">
                 {status === "uploading" ? (
-                    <Loader2 className="w-6 h-6 animate-spin text-black" />
+                    <Loader2 className="w-6 h-6 animate-spin text-brand" />
                 ) : (
                     <UploadCloud className="w-6 h-6" />
                 )}

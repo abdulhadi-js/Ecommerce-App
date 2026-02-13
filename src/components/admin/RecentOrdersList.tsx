@@ -90,7 +90,13 @@ export function RecentOrdersList({ initialOrders }: RecentOrdersListProps) {
                   </span>
                 </td>
                 <td className="px-6 py-4 font-bold text-foreground">${order.amountTotal.toFixed(2)}</td>
-                <td className="px-6 py-4 text-accent">{new Date(order.createdAt).toLocaleDateString()}</td>
+                <td className="px-6 py-4 text-accent">
+                  {new Date(order.createdAt).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -136,7 +142,7 @@ export function RecentOrdersList({ initialOrders }: RecentOrdersListProps) {
                     <div className="flex items-center gap-2 col-span-2">
                         <Calendar size={14} className="text-icon-muted" />
                         <span className="text-accent text-xs">
-                            {new Date(order.createdAt).toLocaleDateString(undefined, {
+                            {new Date(order.createdAt).toLocaleDateString("en-US", {
                                 year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                             })}
                         </span>

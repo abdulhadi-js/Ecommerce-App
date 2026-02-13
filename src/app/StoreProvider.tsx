@@ -17,7 +17,7 @@ export default function StoreProvider({
 
   return (
     // SessionProvider MUST be on the outside
-    <SessionProvider>
+    <SessionProvider refetchOnWindowFocus={false}>
       <ReduxProvider store={storeRef.current}>{children}</ReduxProvider>
     </SessionProvider>
   );

@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 
-const transporter = nodemailer.createTransport({
+export const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 465,
   secure: true, // Use SSL
@@ -8,11 +8,13 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_SERVER_USER,
     pass: process.env.EMAIL_SERVER_PASSWORD,
   },
+  // Force IPv4 to avoid ECONNREFUSED on IPv6 addresses
+  family: 4,
   // This helps bypass some local network restrictions
   tls: {
     rejectUnauthorized: false 
   }
-});
+} as any);
 
 export async function sendVerificationEmail(email: string, token: string) {
   const domain = process.env.NEXT_PUBLIC_BASE_URL;

@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
+import { checkAdmin } from "@/lib/auth-guards";
 import { z } from "zod";
 
 const productSchema = z.object({
@@ -37,14 +37,6 @@ const productSchema = z.object({
 
 function slugify(text: string) {
   return text.toString().toLowerCase().trim().replace(/\s+/g, "-").replace(/[^\w\-]+/g, "").replace(/\-\-+/g, "-");
-}
-
-async function checkAdmin() {
-  const session = await auth();
-  if (!session?.user || (session.user as any).role !== "ADMIN") {
-    throw new Error("Unauthorized: Admin access required");
-  }
-  return session;
 }
 
 export async function createProduct(formData: FormData) {
@@ -141,5 +133,31 @@ export async function deleteProduct(id: string) {
   } catch (error) {
     console.error("DELETE_PRODUCT_ERROR:", error);
     return { success: false, error: "Failed to delete product." };
+  }
+}
+
+export async function refreshCartItems(ids: string[]) {
+  try {
+    const products = await prisma.product.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        images: true,
+        inventory: true,
+      },
+    });
+
+    return products.map((p) => ({
+      id: p.id,
+      name: p.name,
+      price: Number(p.price),
+      image: Array.isArray(p.images) && p.images.length > 0 ? (p.images as string[])[0] : undefined,
+      inventory: p.inventory,
+    }));
+  } catch (error) {
+    console.error("REFRESH_CART_ERROR:", error);
+    return [];
   }
 }

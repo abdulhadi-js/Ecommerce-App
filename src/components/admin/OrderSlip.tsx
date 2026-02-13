@@ -31,6 +31,37 @@ export function OrderSlip({ order }: OrderSlipProps) {
 
   return (
     <>
+      {/* Global Print Styles */}
+      <style jsx global>{`
+        @media print {
+          @page { size: auto; margin: 0mm; }
+          html, body {
+            height: 100vh;
+            overflow: hidden;
+          }
+          body * {
+            visibility: hidden;
+          }
+          #print-slip, #print-slip * {
+            visibility: visible;
+          }
+          #print-slip {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: 9999;
+            background: white;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 20px;
+            overflow: hidden;
+          }
+        }
+      `}</style>
+
       <button 
         onClick={handlePrint}
         className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface border border-border hover:bg-accent/5 text-xs font-bold uppercase tracking-widest text-foreground transition-all shadow-sm active:scale-95 print:hidden"
@@ -40,8 +71,8 @@ export function OrderSlip({ order }: OrderSlipProps) {
       </button>
 
       {/* PRINT CONTAINER (Hidden on screen, visible on print) */}
-      <div className="hidden print:block print:w-[100mm] print:mx-auto bg-white text-black font-sans leading-tight">
-        <div className="border-2 border-black">
+      <div id="print-slip" className="hidden print:flex print:w-full print:bg-white text-black font-sans leading-tight">
+        <div className="w-[100mm] border-2 border-black">
             
             {/* 1. Top Header */}
             <div className="flex border-b-2 border-black text-xs font-bold uppercase">

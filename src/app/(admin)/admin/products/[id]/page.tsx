@@ -38,12 +38,12 @@ export default async function EditProductPage(props: {
     <div className="max-w-7xl mx-auto px-4 py-10">
       <div className="mb-12 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/admin/products" className="text-muted-foreground hover:text-black">
+          <Link href="/admin/products" className="text-accent hover:text-foreground transition-colors">
             <ChevronLeft className="w-6 h-6" />
           </Link>
           <div>
-            <h1 className="text-4xl font-serif text-gray-900">Edit Piece</h1>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-gray-400 mt-1">ID: {product.id}</p>
+            <h1 className="text-4xl font-serif text-foreground">Edit Piece</h1>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-accent mt-1">ID: {product.id}</p>
           </div>
         </div>
 
@@ -51,7 +51,7 @@ export default async function EditProductPage(props: {
         <form action={handleDelete}>
           <button 
             type="submit" 
-            className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-red-400 hover:text-red-600 p-2 transition-colors"
+            className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-red-500 hover:text-red-600 p-2 transition-colors"
           >
             <Trash2 size={16} /> Delete Entry
           </button>

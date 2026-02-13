@@ -1,35 +1,127 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import * as React from "react";
+import { ChevronDown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
-interface AccordionProps {
-  title: string;
+const AccordionContext = React.createContext<{
+  openItems: string[];
+  toggleItem: (value: string) => void;
+} | null>(null);
+
+const Accordion = ({
+  children,
+  type = "single",
+  collapsible = false,
+  className,
+  defaultValue,
+}: {
   children: React.ReactNode;
-  defaultOpen?: boolean;
-}
+  type?: "single" | "multiple";
+  collapsible?: boolean;
+  className?: string;
+  defaultValue?: string | string[];
+}) => {
+  const [openItems, setOpenItems] = React.useState<string[]>(
+    Array.isArray(defaultValue) ? defaultValue : defaultValue ? [defaultValue] : []
+  );
 
-export function Accordion({ title, children, defaultOpen = false }: AccordionProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const toggleItem = (value: string) => {
+    setOpenItems((prev) => {
+      if (type === "single") {
+        if (prev.includes(value)) {
+          return collapsible ? [] : prev;
+        }
+        return [value];
+      } else {
+        if (prev.includes(value)) {
+          return prev.filter((item) => item !== value);
+        }
+        return [...prev, value];
+      }
+    });
+  };
 
   return (
-    <div className="border-t border-border py-4">
+    <AccordionContext.Provider value={{ openItems, toggleItem }}>
+      <div className={className}>{children}</div>
+    </AccordionContext.Provider>
+  );
+};
+
+const AccordionItemContext = React.createContext<{ value: string } | null>(null);
+
+const AccordionItem = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { value: string }
+>(({ className, value, children, ...props }, ref) => (
+  <AccordionItemContext.Provider value={{ value }}>
+    <div ref={ref} className={cn("border-b border-border last:border-0", className)} {...props}>
+      {children}
+    </div>
+  </AccordionItemContext.Provider>
+));
+AccordionItem.displayName = "AccordionItem";
+
+const AccordionTrigger = React.forwardRef<
+  HTMLButtonElement,
+  React.ButtonHTMLAttributes<HTMLButtonElement>
+>(({ className, children, ...props }, ref) => {
+  const { openItems, toggleItem } = React.useContext(AccordionContext)!;
+  const { value } = React.useContext(AccordionItemContext)!;
+  const isOpen = openItems.includes(value);
+
+  return (
+    <div className="flex">
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between text-base font-medium text-brand hover:text-accent transition-colors"
+        ref={ref}
+        onClick={() => toggleItem(value)}
+        className={cn(
+          "flex flex-1 items-center justify-between py-4 font-medium text-foreground transition-all hover:text-brand hover:underline",
+          className
+        )}
+        {...props}
       >
-        {title}
-        {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        {children}
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 text-accent transition-transform duration-200",
+            isOpen && "rotate-180"
+          )}
+        />
       </button>
-      <div
-        className={`overflow-hidden transition-all duration-300 ease-in-out ${
-          isOpen ? "max-h-96 opacity-100 mt-4" : "max-h-0 opacity-0"
-        }`}
-      >
-        <div className="text-sm text-foreground/80 leading-relaxed pb-2">
-          {children}
-        </div>
-      </div>
     </div>
   );
-}
+});
+AccordionTrigger.displayName = "AccordionTrigger";
+
+const AccordionContent = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, children, ...props }, ref) => {
+  const { openItems } = React.useContext(AccordionContext)!;
+  const { value } = React.useContext(AccordionItemContext)!;
+  const isOpen = openItems.includes(value);
+
+  return (
+    <AnimatePresence initial={false}>
+      {isOpen && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.2, ease: "easeInOut" }}
+          className="overflow-hidden"
+        >
+          <div ref={ref} className={cn("pb-4 pt-0 text-sm text-accent leading-relaxed", className)} {...props}>
+            {children}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+});
+AccordionContent.displayName = "AccordionContent";
+
+export { Accordion, AccordionItem, AccordionTrigger, AccordionContent };

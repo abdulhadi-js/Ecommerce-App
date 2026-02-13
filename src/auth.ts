@@ -6,7 +6,8 @@ import { prisma } from "@/lib/db";
 import { compare } from "bcryptjs";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  trustHost: true, // Add this line
+  trustHost: true,
+  secret: process.env.AUTH_SECRET || "fallback_secret_for_dev_only", // Critical for session signing
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
   pages: {
@@ -41,8 +42,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async jwt({ token, user, account }) {
       if (user) {
-        token.id = user.id;
-        token.role = (user as any).role;
+        token.id = user.id!;
+        token.role = user.role;
       }
       // If logging in with Google, we mark email as verified automatically
       if (account?.provider === "google") {
@@ -53,7 +54,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
-        (session.user as any).role = token.role;
+        session.user.role = token.role as string;
       }
       return session;
     },

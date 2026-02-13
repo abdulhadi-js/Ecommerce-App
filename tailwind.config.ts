@@ -59,6 +59,12 @@ const config: Config = {
           primary: "hsl(var(--icon-primary))",
           muted: "hsl(var(--icon-muted))",
         },
+        // Sustainability Specific
+        sust: {
+          primary: "hsl(var(--sust-primary))", // Deep Forest Green
+          secondary: "hsl(var(--sust-secondary))", // Alabaster/Sand
+          accent: "hsl(var(--sust-accent))", // Terracotta
+        },
       },
       backgroundImage: {
          // Clean Gradients

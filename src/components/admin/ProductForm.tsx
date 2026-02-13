@@ -128,7 +128,7 @@ export function ProductForm({ categories, initialData, actionType }: ProductForm
                         required 
                         defaultValue={initialData?.name} 
                         placeholder="e.g. Classic Oxford Shirt" 
-                        className="w-full text-xl sm:text-2xl font-serif bg-transparent border-b border-input py-2 text-foreground focus:outline-none focus:border-brand transition-colors placeholder:text-muted-foreground/50" 
+                        className="w-full text-xl sm:text-2xl font-serif bg-transparent border-b border-input py-2 text-foreground focus:outline-none focus:border-brand transition-colors placeholder:text-accent/50" 
                     />
                 </div>
                 <div>
@@ -139,7 +139,7 @@ export function ProductForm({ categories, initialData, actionType }: ProductForm
                         defaultValue={initialData?.description} 
                         placeholder="Detailed description of the product..." 
                         rows={4} 
-                        className="w-full text-base bg-transparent border-b border-input py-2 text-foreground focus:outline-none focus:border-brand resize-none transition-colors placeholder:text-muted-foreground/50" 
+                        className="w-full text-base bg-transparent border-b border-input py-2 text-foreground focus:outline-none focus:border-brand resize-none transition-colors placeholder:text-accent/50" 
                     />
                 </div>
             </div>
@@ -203,7 +203,7 @@ export function ProductForm({ categories, initialData, actionType }: ProductForm
                                 <button 
                                     type="button" 
                                     onClick={() => removeImageFromColor(idx, imgIdx)}
-                                    className="absolute top-1 right-1 bg-black/50 hover:bg-red-500 p-1 rounded-full text-white opacity-0 group-hover/img:opacity-100 transition-all backdrop-blur-sm"
+                                    className="absolute top-1 right-1 bg-foreground/50 hover:bg-red-500 p-1 rounded-full text-background opacity-0 group-hover/img:opacity-100 transition-all backdrop-blur-sm"
                                 >
                                     <X size={10} />
                                 </button>
@@ -221,7 +221,7 @@ export function ProductForm({ categories, initialData, actionType }: ProductForm
               ))}
               
               {colors.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground bg-accent/5 rounded-xl border border-dashed border-border">
+                  <div className="text-center py-8 text-accent bg-accent/5 rounded-xl border border-dashed border-border">
                       <p className="text-sm">No color variants added yet.</p>
                   </div>
               )}
@@ -262,7 +262,7 @@ export function ProductForm({ categories, initialData, actionType }: ProductForm
                                 <option value="">Select Category</option>
                                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground text-[10px]">▼</div>
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-accent text-[10px]">▼</div>
                         </div>
                     </div>
 

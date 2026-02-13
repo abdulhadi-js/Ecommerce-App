@@ -107,7 +107,7 @@ export function StoreFooter() {
           <div className="flex gap-6">
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
-            <Link href="/sitemap" className="hover:text-white transition-colors">Sitemap</Link>
+            <Link href="/site-map" className="hover:text-white transition-colors">Sitemap</Link>
           </div>
         </div>
       </div>
