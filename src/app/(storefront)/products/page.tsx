@@ -4,6 +4,8 @@ import { ProductCard } from "@/components/storefront/ProductCard";
 import { CategorySelection } from "@/components/storefront/CategorySelection";
 import { FadeIn, FadeInStagger } from "@/components/ui/fade-in";
 import { Search, PackageOpen } from "lucide-react";
+import { getCachedCategories } from "@/lib/cache";
+import { serializeProduct } from "@/lib/serialization";
 
 export default async function ShopAllPage(props: {
   searchParams: Promise<{ category?: string; q?: string }>;
@@ -28,9 +30,7 @@ export default async function ShopAllPage(props: {
 
   // Fetch Categories and Products in parallel
   const [categories, rawProducts] = await Promise.all([
-    prisma.category.findMany({
-        orderBy: { name: "asc" },
-    }),
+    getCachedCategories(),
     prisma.product.findMany({
         where: whereClause,
         include: { category: true }, // Include category data for display
@@ -38,15 +38,8 @@ export default async function ShopAllPage(props: {
     })
   ]);
 
-  // SERIALIZE DATA: Convert Decimal to Number and handle potential nulls
-  const products = rawProducts.map(product => ({
-    ...product,
-    price: product.price.toNumber(), // Convert Decimal price to number
-    sizes: (product.sizes as string[]) || [],
-    colors: (product.colors as any[]) || [],
-    extraDetails: (product.extraDetails as any) || {},
-    images: (product.images as string[]) || [],
-  }));
+  // SERIALIZE DATA using utility
+  const products = rawProducts.map(serializeProduct);
 
   return (
     <div className="min-h-screen bg-background">

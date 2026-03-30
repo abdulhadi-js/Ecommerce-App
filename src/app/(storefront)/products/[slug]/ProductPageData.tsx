@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { auth } from "@/auth";
+import { serializeProduct } from "@/lib/serialization";
 
 
 interface ProductPageDataProps {
@@ -31,18 +32,14 @@ const product = await prisma.product.findUnique({
     return { notFound: true };
   }
 
-  // Serialize everything for the Client Component
+  // Serialize using utility and add session specific fields
   const serializedProduct = {
-    ...product,
-    price: product.price.toNumber(),
-    sizes: (product.sizes as string[]) || [],
-    colors: (product.colors as any[]) || [],
-    extraDetails: (product.extraDetails as any) || {},
-    images: (product.images as string[]) || [],
-    // Ensure reviews are passed through
-    reviews: product.reviews || [],
+    ...serializeProduct(product),
     isWishlisted: product.wishlist ? product.wishlist.length > 0 : false,
-
+    reviews: (product.reviews || []).map(r => ({
+        ...r,
+        createdAt: r.createdAt?.toISOString?.() || r.createdAt
+    }))
   };
 
   return {

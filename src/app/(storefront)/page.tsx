@@ -1,40 +1,24 @@
 import { ProductCard } from "@/components/storefront/ProductCard";
-import { prisma } from "@/lib/db";
 import { FeatureCarousel } from "@/components/storefront/FeatureCarousel";
 import { Award, Leaf, Users } from "lucide-react";
 import { CategoryGrid } from "@/components/storefront/CategoryGrid";
 import { ReviewSlider } from "@/components/storefront/ReviewSlider";
 import { NewsletterSection } from "@/components/storefront/NewsletterSection";
-// --- GUARANTEED IMPORTS ---
 import { FadeIn, FadeInStagger, FadeInChild } from "@/components/ui/fade-in";
-// --------------------------
+import { getCachedCategories, getCachedLatestProducts, getCachedLatestReviews } from "@/lib/cache";
+import { serializeProduct, serializeReview } from "@/lib/serialization";
 
 export default async function HomePage() {
+  // Use cached data to speed up response and reduce DB pressure
   const [data, categories, reviews] = await Promise.all([
-    prisma.product.findMany({ take: 4, orderBy: { createdAt: 'desc' } }),
-    prisma.category.findMany({ orderBy: { name: "asc" }, take: 4 }),
-    prisma.review.findMany({ 
-        take: 9, 
-        orderBy: { createdAt: 'desc' },
-        include: { user: true }
-    })
+    getCachedLatestProducts(4),
+    getCachedCategories(),
+    getCachedLatestReviews(9)
   ]);
 
-  // Serialize data to plain objects for Client Components
-  const latestProducts = data.map(product => ({
-    ...product,
-    price: product.price.toNumber(),
-    sizes: (product.sizes as string[]) || [],
-    colors: (product.colors as any[]) || [],
-    extraDetails: (product.extraDetails as any) || {},
-    images: (product.images as string[]) || [],
-  }));
-
-  // Serialize reviews
-  const serializedReviews = reviews.map(r => ({
-      ...r,
-      createdAt: r.createdAt, 
-  }));
+  // Serialize data using optimized utilities
+  const latestProducts = data.map(serializeProduct);
+  const serializedReviews = reviews.map(serializeReview);
 
   return (
     <div className="max-w-7xl mx-auto px-4 pb-20 space-y-24">
