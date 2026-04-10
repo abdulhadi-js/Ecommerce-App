@@ -4,7 +4,16 @@ import { ThemeProvider } from './ThemeProvider';
 
 // Mock next-themes
 vi.mock("next-themes", () => ({
-  ThemeProvider: ({ children, ...props }: any) => <div data-testid="theme-provider" {...props}>{children}</div>,
+  ThemeProvider: ({ children, ...props }: any) => (
+    <div 
+      data-testid="theme-provider" 
+      data-attribute={props.attribute} 
+      data-default-theme={props.defaultTheme} 
+      data-enable-system={props.enableSystem}
+    >
+      {children}
+    </div>
+  ),
 }));
 
 describe('ThemeProvider', () => {
@@ -27,7 +36,7 @@ describe('ThemeProvider', () => {
     );
     
     const provider = screen.getByTestId('theme-provider');
-    expect(provider.getAttribute('attribute')).toBe('class');
-    expect(provider.getAttribute('defaultTheme')).toBe('dark');
+    expect(provider.getAttribute('data-attribute')).toBe('class');
+    expect(provider.getAttribute('data-default-theme')).toBe('dark');
   });
 });

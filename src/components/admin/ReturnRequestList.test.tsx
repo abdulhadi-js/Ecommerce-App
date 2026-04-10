@@ -32,7 +32,7 @@ describe("ReturnRequestList", () => {
   it("renders return requests correctly", () => {
     render(<ReturnRequestList initialRequests={mockRequests} />);
     expect(screen.getByText("Test Product")).toBeDefined();
-    expect(screen.getByText("Damaged item")).toBeDefined();
+    expect(screen.getByText('"Damaged item"')).toBeDefined();
     expect(screen.getByText("PENDING")).toBeDefined();
   });
 

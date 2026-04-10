@@ -1,4 +1,6 @@
-// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
 
 datasource db {
   provider     = "mysql"
@@ -6,53 +8,24 @@ datasource db {
   relationMode = "prisma"
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
-enum Role {
-  USER
-  ADMIN
-}
-
-enum OrderStatus {
-  PENDING
-  CONFIRMED
-  PAID
-  SHIPPED
-  CANCELLED
-}
-
 model User {
-  id                String    @id @default(cuid())
-  
-  // Standard NextAuth fields (REQUIRED for Google Login)
-  name              String?
-  email             String    @unique
+  id                String     @id @default(cuid())
+  email             String     @unique
+  phoneNumber       String?    @unique
+  createdAt         DateTime   @default(now())
   emailVerified     DateTime?
   image             String?
-  password          String?   // Optional for Google users
-  
-  // Custom fields
-  role              Role      @default(USER)
-  phoneNumber       String?   @unique
-  verificationToken String?   @unique
-  
-  // Password Reset
-  resetToken        String?   @unique
+  name              String?
+  password          String?
+  role              Role       @default(USER)
+  verificationToken String?    @unique
+  resetToken        String?    @unique
   resetTokenExpiry  DateTime?
-  
-  // Relations for OAuth
   accounts          Account[]
   sessions          Session[]
-
-  createdAt         DateTime  @default(now())
   orders            Order[]
-
-  wishlist Wishlist[]
-
-  reviews Review[]
-
+  wishlist          Wishlist[]
+  reviews           Review[]
 }
 
 model Account {
@@ -68,14 +41,12 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
 }
 
-// Optional but recommended for Auth.js
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
@@ -87,31 +58,24 @@ model Session {
 }
 
 model Product {
-  id            String      @id @default(cuid())
-  name          String
-  slug          String      @unique
-  description   String      @db.Text
-  price         Decimal     @db.Decimal(10, 2)
-  images        Json
-  inventory     Int         @default(0)
-  isFeatured    Boolean     @default(false)
-  
-  // Relations
-  categoryId    String?
-  category      Category?   @relation(fields: [categoryId], references: [id])
-
-  // --- NEW CMS FIELDS ---
-  sizes         Json?       // Will store: ["S", "M", "L"]
-  colors        Json?       // Will store: [{ name: "Red", image: "url..." }]
-  extraDetails  Json?       // Will store: { "Material": "Cotton", "Care": "Wash cold" }
-  // ----------------------
-
-  createdAt     DateTime    @default(now())
-  orderItems    OrderItem[]
-  reviews Review[]
-  wishlist Wishlist[]
-  returns       ReturnRequest[]
-
+  id           String          @id @default(cuid())
+  name         String
+  slug         String          @unique
+  description  String          @db.Text
+  price        Decimal         @db.Decimal(10, 2)
+  images       Json
+  inventory    Int             @default(0)
+  isFeatured   Boolean         @default(false)
+  categoryId   String?
+  sizes        Json?
+  colors       Json?
+  extraDetails Json?
+  createdAt    DateTime        @default(now())
+  category     Category?       @relation(fields: [categoryId], references: [id])
+  orderItems   OrderItem[]
+  reviews      Review[]
+  wishlist     Wishlist[]
+  returns      ReturnRequest[]
 
   @@index([categoryId])
   @@index([createdAt])
@@ -119,28 +83,18 @@ model Product {
 }
 
 model Order {
-  id              String        @id @default(cuid())
-  
-  // --- RELATIONSHIP TO USER (This was missing) ---
-  user            User          @relation(fields: [userId], references: [id])
+  id              String          @id @default(cuid())
   userId          String
-  // ---------------------------------------------
-
-  // --- RELATIONSHIP TO ITEMS (This was missing) ---
-  items           OrderItem[]
-  // ---------------------------------------------
-
-  amountTotal     Decimal       @db.Decimal(10, 2)
-  status          OrderStatus   @default(PENDING)
-  stripePaymentId String?       @unique
-
-  // Shipping Fields
-  shippingName    String?
-  shippingPhone   String?
+  amountTotal     Decimal         @db.Decimal(10, 2)
+  status          OrderStatus     @default(PENDING)
+  stripePaymentId String?         @unique
+  createdAt       DateTime        @default(now())
   shippingAddress String?
   shippingCity    String?
-
-  createdAt       DateTime      @default(now())
+  shippingName    String?
+  shippingPhone   String?
+  user            User            @relation(fields: [userId], references: [id])
+  items           OrderItem[]
   returns         ReturnRequest[]
 
   @@index([userId])
@@ -149,12 +103,12 @@ model Order {
 
 model OrderItem {
   id        String  @id @default(cuid())
-  order     Order   @relation(fields: [orderId], references: [id])
   orderId   String
-  product   Product @relation(fields: [productId], references: [id])
   productId String
   quantity  Int
   price     Decimal @db.Decimal(10, 2)
+  order     Order   @relation(fields: [orderId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
 
   @@index([orderId])
   @@index([productId])
@@ -163,47 +117,36 @@ model OrderItem {
 model ReturnRequest {
   id          String       @id @default(cuid())
   orderId     String
-  order       Order        @relation(fields: [orderId], references: [id])
   productId   String
-  product     Product      @relation(fields: [productId], references: [id])
   reason      String       @db.Text
   quantity    Int
-  phoneNumber String?      // Contact for return coordination
   status      ReturnStatus @default(PENDING)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+  phoneNumber String?
+  order       Order        @relation(fields: [orderId], references: [id])
+  product     Product      @relation(fields: [productId], references: [id])
 
   @@index([orderId])
   @@index([productId])
 }
 
-enum ReturnStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  COMPLETED
-}
-
 model Category {
-  id        String    @id @default(cuid())
-  name      String    @unique
-  slug      String    @unique
-  products  Product[]
+  id       String    @id @default(cuid())
+  name     String    @unique
+  slug     String    @unique
+  products Product[]
 }
 
 model Review {
   id        String   @id @default(cuid())
-  rating    Int      // 1 to 5
+  rating    Int
   comment   String   @db.Text
-  
-  // Relations
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
   productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([productId])
@@ -223,14 +166,32 @@ model ContactMessage {
 model Wishlist {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   productId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-
-  // A user can only heart a specific product once
   @@unique([userId, productId])
   @@index([userId])
   @@index([productId])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PAID
+  SHIPPED
+  CANCELLED
+}
+
+enum ReturnStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
 }

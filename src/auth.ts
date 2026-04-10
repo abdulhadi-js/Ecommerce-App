@@ -1,15 +1,27 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/db";
 import { compare } from "bcryptjs";
 
+class InvalidLoginError extends CredentialsSignin {
+  code = "Invalid login credentials";
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
   secret: process.env.AUTH_SECRET || "fallback_secret_for_dev_only", // Critical for session signing
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
+  logger: {
+    error(error) {
+      if (error?.name === "CredentialsSignin") {
+        return;
+      }
+      console.error(error);
+    },
+  },
   pages: {
     signIn: "/login",
     error: "/login", // Redirect back to login on error
@@ -27,14 +39,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials.password) return null;
+        if (!credentials?.email || !credentials.password) throw new InvalidLoginError();
         const user = await prisma.user.findUnique({
           where: { email: credentials.email as string },
         });
-        if (!user || !user.password) return null;
+        if (!user || !user.password) throw new InvalidLoginError();
         const isPasswordValid = await compare(credentials.password as string, user.password);
-        if (!isPasswordValid) return null;
-        if (!user.emailVerified) throw new Error("Please verify your email.");
+        if (!isPasswordValid) throw new InvalidLoginError();
+        if (!user.emailVerified) throw new CredentialsSignin("Please verify your email.");
         return user;
       },
     }),
