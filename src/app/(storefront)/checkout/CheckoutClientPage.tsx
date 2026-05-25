@@ -22,6 +22,7 @@ const checkoutSchema = z.object({
   phone: z.string().min(7, "Phone number is invalid").regex(/^\d+$/, "Only numbers allowed"),
   address: z.string().min(5, "Full address is required"),
   city: z.string().min(1, "Please select a city"),
+  paymentMethod: z.enum(["stripe", "cod"]),
 });
 
 type CheckoutFormValues = z.infer<typeof checkoutSchema>;
@@ -36,6 +37,7 @@ export default function CheckoutClientPage({ user }: { user: any }) {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
     setValue,
   } = useForm<CheckoutFormValues>({
@@ -44,8 +46,11 @@ export default function CheckoutClientPage({ user }: { user: any }) {
       fullName: user?.name || "",
       countryCode: "+92",
       city: "",
+      paymentMethod: "stripe",
     },
   });
+
+  const paymentMethod = watch("paymentMethod");
 
   // Fix Hydration Mismatch
   useEffect(() => {
@@ -64,6 +69,7 @@ export default function CheckoutClientPage({ user }: { user: any }) {
     formData.set("phone", `${data.countryCode}${data.phone}`);
     formData.set("address", data.address);
     formData.set("city", data.city);
+    formData.set("paymentMethod", data.paymentMethod);
     // Needed for backward compatibility if action uses these keys individually
     formData.set("countryCode", data.countryCode); 
 
@@ -74,9 +80,13 @@ export default function CheckoutClientPage({ user }: { user: any }) {
 
       if (result.success) {
         dispatch(clearCart());
-        router.push(
-          `/checkout/success?orderId=${result.orderId}&customerName=${encodeURIComponent(data.fullName)}`
-        );
+        if (result.checkoutUrl) {
+          window.location.href = result.checkoutUrl;
+        } else {
+          router.push(
+            `/checkout/success?orderId=${result.orderId}&customerName=${encodeURIComponent(data.fullName)}`
+          );
+        }
       } else {
         setGlobalError(result.error || "Failed to place order.");
       }
@@ -240,6 +250,25 @@ export default function CheckoutClientPage({ user }: { user: any }) {
                         {errors.city && <p className="text-red-500 text-xs">{errors.city.message}</p>}
                     </div>
 
+                    {/* Payment Method Selection */}
+                    <div className="space-y-3 pt-2">
+                        <label className="block text-xs font-bold uppercase tracking-widest text-accent">
+                            Payment Method
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <label className={`relative flex flex-col border rounded-xl p-4 cursor-pointer transition-all ${paymentMethod === 'stripe' ? 'border-brand bg-brand/5 ring-1 ring-brand' : 'border-border hover:border-brand/50'}`}>
+                                <input type="radio" value="stripe" {...register("paymentMethod")} className="absolute opacity-0 w-0 h-0" />
+                                <span className="font-bold text-sm text-foreground">Credit Card</span>
+                                <span className="text-xs text-muted-foreground mt-1">Pay securely via Stripe</span>
+                            </label>
+                            <label className={`relative flex flex-col border rounded-xl p-4 cursor-pointer transition-all ${paymentMethod === 'cod' ? 'border-brand bg-brand/5 ring-1 ring-brand' : 'border-border hover:border-brand/50'}`}>
+                                <input type="radio" value="cod" {...register("paymentMethod")} className="absolute opacity-0 w-0 h-0" />
+                                <span className="font-bold text-sm text-foreground">Cash on Delivery</span>
+                                <span className="text-xs text-muted-foreground mt-1">Pay when order arrives</span>
+                            </label>
+                        </div>
+                    </div>
+
                     <div className="pt-6">
                         <button
                             disabled={isSubmitting}
@@ -306,8 +335,14 @@ export default function CheckoutClientPage({ user }: { user: any }) {
 
                 <div className="mt-8 p-4 bg-accent/5 border border-border rounded-xl text-xs text-center leading-relaxed">
                     <p className="text-muted-foreground uppercase tracking-widest mb-1">Payment Method</p>
-                    <p className="font-bold text-foreground">Cash on Delivery</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">Pay securely when your order arrives at your doorstep.</p>
+                    <p className="font-bold text-foreground">
+                        {paymentMethod === 'stripe' ? 'Credit Card (Stripe)' : 'Cash on Delivery'}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                        {paymentMethod === 'stripe' 
+                            ? 'You will be redirected to Stripe to securely complete your payment.' 
+                            : 'Pay securely when your order arrives at your doorstep.'}
+                    </p>
                 </div>
             </div>
           </div>

@@ -25,27 +25,28 @@ interface RecentOrdersListProps {
 
 export function RecentOrdersList({ initialOrders }: RecentOrdersListProps) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
-  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
   const loadMore = async () => {
     setLoading(true);
-    const nextPage = page + 1;
-    const newOrders = await getRecentOrders(nextPage, 5);
+    const lastOrder = orders[orders.length - 1];
+    const cursor = lastOrder ? lastOrder.id : undefined;
+    
+    const newOrders = await getRecentOrders(cursor, 5);
 
     if (newOrders.length === 0) {
       setHasMore(false);
     } else {
       // @ts-ignore - Date serialization mismatch fix (client receives string date from JSON)
       setOrders((prev) => [...prev, ...newOrders]);
-      setPage(nextPage);
     }
     setLoading(false);
   };
 
   const statusStyles = {
     PENDING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-900",
+    PENDING_PAYMENT: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-900",
     PAID: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-900",
     SHIPPED: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-900",
     CANCELLED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-900",

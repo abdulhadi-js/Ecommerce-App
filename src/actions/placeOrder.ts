@@ -3,6 +3,10 @@
 import { prisma } from "@/lib/db";
 import { auth } from "@/auth";
 import { z } from "zod";
+import { headers } from "next/headers";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+import Stripe from "stripe";
 
 type CartItem = {
   id: string;
@@ -22,12 +26,49 @@ const cartItemsSchema = z.array(z.object({
 })).min(1, "Cart is empty");
 
 export async function placeOrder(items: CartItem[], formData: FormData) {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return { success: false, error: "Stripe configuration is missing on the server." };
+  }
+  
+  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+    return { success: false, error: "Rate limiting configuration is missing on the server." };
+  }
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: "2026-04-22.dahlia",
+  });
+
+  const redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  });
+
+  const ratelimit = new Ratelimit({
+    redis: redis,
+    limiter: Ratelimit.slidingWindow(5, "1 m"),
+    analytics: true,
+  });
+
   const session = await auth();
 
   if (!session?.user?.id) {
     return { success: false, error: "Authentication required. Please log in." };
   }
+
+  // --- SEC-01: Rate Limiting ---
+  const ip = (await headers()).get("x-forwarded-for") || "127.0.0.1";
+  const { success: rateLimitSuccess } = await ratelimit.limit(`checkout_${ip}`);
+
+  if (!rateLimitSuccess) {
+    return { success: false, error: "Too many requests. Please try again later." };
+  }
+  // -----------------------------
   
+  const paymentMethod = formData.get("paymentMethod") as string;
+  if (paymentMethod !== "stripe" && paymentMethod !== "cod") {
+      return { success: false, error: "Invalid payment method." };
+  }
+
   // Validate shipping details
   const shippingData = {
     fullName: formData.get("fullName"),
@@ -65,7 +106,6 @@ export async function placeOrder(items: CartItem[], formData: FormData) {
     const product = productMap.get(item.id);
     
     if (!product) {
-        // This should technically be caught by validation or earlier checks, but good for safety
         throw new Error(`Security Error: Product ${item.id} not found.`);
     }
 
@@ -75,34 +115,91 @@ export async function placeOrder(items: CartItem[], formData: FormData) {
     return { 
         productId: product.id, 
         quantity: item.quantity, 
-        price: product.price // Store the original Decimal price
+        price: product.price 
     };
   });
   
   try {
-    const order = await prisma.order.create({
-      data: {
-        userId: session.user.id, 
-        amountTotal: totalAmount,
-        status: "PENDING",
+    // --- INV-01: Atomic Transaction ---
+    const order = await prisma.$transaction(async (tx) => {
+      // 1. Atomically deduct inventory
+      for (const item of validatedItems.data) {
+        const update = await tx.product.updateMany({
+          where: { 
+            id: item.id,
+            inventory: { gte: item.quantity } 
+          },
+          data: { inventory: { decrement: item.quantity } }
+        });
         
-        // --- THE FIX: Save the shipping details ---
-        shippingName: fullName,
-        shippingPhone: phone,
-        shippingAddress: address,
-        shippingCity: city,
-        // ------------------------------------------
+        if (update.count === 0) {
+          throw new Error(`Insufficient stock for product ${item.id}`);
+        }
+      }
 
-        items: {
-          create: orderItemsData,
+      // 2. Create the order
+      return await tx.order.create({
+        data: {
+          userId: session.user.id, 
+          amountTotal: totalAmount,
+          status: paymentMethod === "stripe" ? "PENDING_PAYMENT" : "PENDING", 
+          
+          shippingName: fullName,
+          shippingPhone: phone,
+          shippingAddress: address,
+          shippingCity: city,
+
+          items: {
+            create: orderItemsData,
+          },
         },
+      });
+    });
+
+    if (paymentMethod === "cod") {
+      return { success: true, orderId: order.id };
+    }
+
+    // --- ARCH-01: Stripe Checkout Session ---
+    // Create Stripe Checkout Session
+    const lineItems = validatedItems.data.map((item) => {
+      const product = productMap.get(item.id)!;
+      return {
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: product.name,
+          },
+          unit_amount: Math.round(Number(product.price) * 100), // Stripe expects cents
+        },
+        quantity: item.quantity,
+      };
+    });
+
+    // We assume the app runs on localhost:3000 during dev, or use an environment variable for production
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+    const stripeSession = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      line_items: lineItems,
+      success_url: `${appUrl}/checkout/success?orderId=${order.id}&customerName=${encodeURIComponent(fullName)}`,
+      cancel_url: `${appUrl}/cart`,
+      metadata: {
+        orderId: order.id,
       },
     });
 
-    return { success: true, orderId: order.id };
+    // Optionally save the stripe session ID to the order
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { stripePaymentId: stripeSession.id },
+    });
+
+    return { success: true, orderId: order.id, checkoutUrl: stripeSession.url };
 
   } catch (error) {
-    console.error("Failed to create order:", error);
-    return { success: false, error: "A database error occurred while creating your order." };
+    console.error("Order Creation Error: Database transaction failed", error instanceof Error ? error.message : "Unknown error");
+    return { success: false, error: error instanceof Error ? error.message : "A database error occurred while creating your order." };
   }
 }

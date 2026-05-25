@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Package, Calendar, DollarSign, Search, ChevronUp, ChevronDown, Filter } from "lucide-react";
+import { Package, Calendar, DollarSign, Search, ChevronUp, ChevronDown, Filter, Loader2, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { resumeCheckout } from "@/actions/orders";
 
 // Types
 export type OrderItemInfo = {
@@ -33,6 +34,7 @@ type SortConfig = {
 function StatusBadge({ status }: { status: string }) {
   const styles = {
     PENDING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-900",
+    PENDING_PAYMENT: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200 dark:border-orange-900",
     PAID: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-900",
     SHIPPED: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-900",
     CANCELLED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-900",
@@ -40,6 +42,7 @@ function StatusBadge({ status }: { status: string }) {
 
   const labels = {
     PENDING: "Pending",
+    PENDING_PAYMENT: "Pending Payment",
     PAID: "Paid",
     SHIPPED: "Shipped",
     CANCELLED: "Cancelled",
@@ -52,6 +55,32 @@ function StatusBadge({ status }: { status: string }) {
       <span className="w-1.5 h-1.5 rounded-full bg-current opacity-75" />
       {labels[statusKey] || status}
     </span>
+  );
+}
+
+function PayNowButton({ orderId }: { orderId: string }) {
+  const [loading, setLoading] = useState(false);
+
+  const handlePay = async () => {
+    setLoading(true);
+    const res = await resumeCheckout(orderId);
+    if (res.success && res.checkoutUrl) {
+      window.location.href = res.checkoutUrl;
+    } else {
+      alert(res.message || "Something went wrong");
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handlePay}
+      disabled={loading}
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand text-brand-foreground text-[10px] font-bold uppercase tracking-widest rounded-full hover:bg-brand/90 transition-all disabled:opacity-50"
+    >
+      {loading ? <Loader2 size={12} className="animate-spin" /> : <CreditCard size={12} />}
+      Pay Now
+    </button>
   );
 }
 
@@ -199,20 +228,25 @@ export function OrderHistoryTable({ initialOrders }: { initialOrders: OrderData[
                       ${order.amountTotal.toFixed(2)}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex -space-x-2 overflow-hidden">
-                        {order.items.slice(0, 3).map((item) => (
-                          <div key={item.id} className="inline-block h-8 w-8 rounded-full ring-2 ring-surface relative bg-background overflow-hidden" title={item.product.name}>
-                             <img 
-                                src={item.product.images[0] || "/placeholder.jpg"} 
-                                alt={item.product.name} 
-                                className="h-full w-full object-cover"
-                             />
-                          </div>
-                        ))}
-                        {order.items.length > 3 && (
-                          <div className="inline-flex h-8 w-8 items-center justify-center rounded-full ring-2 ring-surface bg-accent/10 text-[10px] font-bold text-accent">
-                            +{order.items.length - 3}
-                          </div>
+                      <div className="flex items-center gap-4">
+                        <div className="flex -space-x-2 overflow-hidden">
+                          {order.items.slice(0, 3).map((item) => (
+                            <div key={item.id} className="inline-block h-8 w-8 rounded-full ring-2 ring-surface relative bg-background overflow-hidden" title={item.product.name}>
+                               <img 
+                                  src={item.product.images[0] || "/placeholder.jpg"} 
+                                  alt={item.product.name} 
+                                  className="h-full w-full object-cover"
+                               />
+                            </div>
+                          ))}
+                          {order.items.length > 3 && (
+                            <div className="inline-flex h-8 w-8 items-center justify-center rounded-full ring-2 ring-surface bg-accent/10 text-[10px] font-bold text-accent">
+                              +{order.items.length - 3}
+                            </div>
+                          )}
+                        </div>
+                        {order.status === "PENDING_PAYMENT" && (
+                          <PayNowButton orderId={order.id} />
                         )}
                       </div>
                       <div className="text-[10px] text-accent mt-1 truncate max-w-[150px]">
@@ -266,22 +300,29 @@ export function OrderHistoryTable({ initialOrders }: { initialOrders: OrderData[
               </div>
 
               {/* Items Preview */}
-              <div>
-                <p className="text-[10px] uppercase font-bold tracking-widest text-accent mb-2">Items</p>
-                <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                  {order.items.map((item) => (
-                    <div key={item.id} className="relative h-12 w-12 flex-shrink-0 rounded-lg border border-border overflow-hidden bg-background">
-                        <img 
-                          src={item.product.images[0] || "/placeholder.jpg"} 
-                          alt={item.product.name} 
-                          className="h-full w-full object-cover"
-                        />
-                    </div>
-                  ))}
+              <div className="flex justify-between items-end">
+                <div className="flex-1">
+                  <p className="text-[10px] uppercase font-bold tracking-widest text-accent mb-2">Items</p>
+                  <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                    {order.items.map((item) => (
+                      <div key={item.id} className="relative h-12 w-12 flex-shrink-0 rounded-lg border border-border overflow-hidden bg-background">
+                          <img 
+                            src={item.product.images[0] || "/placeholder.jpg"} 
+                            alt={item.product.name} 
+                            className="h-full w-full object-cover"
+                          />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-foreground mt-1 line-clamp-1">
+                    {order.items.map(i => i.product.name).join(", ")}
+                  </p>
                 </div>
-                <p className="text-xs text-foreground mt-1 line-clamp-1">
-                  {order.items.map(i => i.product.name).join(", ")}
-                </p>
+                {order.status === "PENDING_PAYMENT" && (
+                  <div className="ml-4">
+                    <PayNowButton orderId={order.id} />
+                  </div>
+                )}
               </div>
             </div>
           ))
