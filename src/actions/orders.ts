@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { checkAdmin, checkAuth } from "@/lib/auth-guards";
 import { z } from "zod";
+import { headers } from "next/headers";
 
 const updateStatusSchema = z.object({
   orderId: z.string().min(1),
@@ -139,7 +140,7 @@ export async function resumeCheckout(orderId: string) {
       };
     });
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const appUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
     const stripeSession = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],

@@ -176,8 +176,7 @@ export async function placeOrder(items: CartItem[], formData: FormData) {
       };
     });
 
-    // We assume the app runs on localhost:3000 during dev, or use an environment variable for production
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const appUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
     const stripeSession = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
