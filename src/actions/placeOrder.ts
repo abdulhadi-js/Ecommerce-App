@@ -26,100 +26,100 @@ const cartItemsSchema = z.array(z.object({
 })).min(1, "Cart is empty");
 
 export async function placeOrder(items: CartItem[], formData: FormData) {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    return { success: false, error: "Stripe configuration is missing on the server." };
-  }
-  
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
-    return { success: false, error: "Rate limiting configuration is missing on the server." };
-  }
-
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: "2026-04-22.dahlia",
-  });
-
-  const redis = new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN,
-  });
-
-  const ratelimit = new Ratelimit({
-    redis: redis,
-    limiter: Ratelimit.slidingWindow(5, "1 m"),
-    analytics: true,
-  });
-
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return { success: false, error: "Authentication required. Please log in." };
-  }
-
-  // --- SEC-01: Rate Limiting ---
-  const ip = (await headers()).get("x-forwarded-for") || "127.0.0.1";
-  const { success: rateLimitSuccess } = await ratelimit.limit(`checkout_${ip}`);
-
-  if (!rateLimitSuccess) {
-    return { success: false, error: "Too many requests. Please try again later." };
-  }
-  // -----------------------------
-  
-  const paymentMethod = formData.get("paymentMethod") as string;
-  if (paymentMethod !== "stripe" && paymentMethod !== "cod") {
-      return { success: false, error: "Invalid payment method." };
-  }
-
-  // Validate shipping details
-  const shippingData = {
-    fullName: formData.get("fullName"),
-    phone: formData.get("phone"),
-    address: formData.get("address"),
-    city: formData.get("city"),
-  };
-
-  const validatedShipping = shippingSchema.safeParse(shippingData);
-
-  if (!validatedShipping.success) {
-      return { success: false, error: "Invalid shipping details." };
-  }
-
-  const { fullName, phone, address, city } = validatedShipping.data;
-
-  // Validate items
-  const validatedItems = cartItemsSchema.safeParse(items);
-
-  if (!validatedItems.success) {
-    return { success: false, error: "Invalid cart items." };
-  }
-
-  const productIds = validatedItems.data.map((i) => i.id);
-  const dbProducts = await prisma.product.findMany({
-    where: { id: { in: productIds } },
-  });
-
-  let totalAmount = 0;
-  
-  // Use a map for O(1) lookups
-  const productMap = new Map(dbProducts.map(p => [p.id, p]));
-
-  const orderItemsData = validatedItems.data.map((item) => {
-    const product = productMap.get(item.id);
+  try {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return { success: false, error: "Stripe configuration is missing on the server." };
+    }
     
-    if (!product) {
-        throw new Error(`Security Error: Product ${item.id} not found.`);
+    if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+      return { success: false, error: "Rate limiting configuration is missing on the server." };
     }
 
-    const price = Number(product.price);
-    totalAmount += price * item.quantity;
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2026-04-22.dahlia",
+    });
+
+    const redis = new Redis({
+      url: (process.env.UPSTASH_REDIS_REST_URL || "").trim(),
+      token: (process.env.UPSTASH_REDIS_REST_TOKEN || "").trim(),
+    });
+
+    const ratelimit = new Ratelimit({
+      redis: redis,
+      limiter: Ratelimit.slidingWindow(5, "1 m"),
+      analytics: true,
+    });
+
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return { success: false, error: "Authentication required. Please log in." };
+    }
+
+    // --- SEC-01: Rate Limiting ---
+    const ip = (await headers()).get("x-forwarded-for") || "127.0.0.1";
+    const { success: rateLimitSuccess } = await ratelimit.limit(`checkout_${ip}`);
+
+    if (!rateLimitSuccess) {
+      return { success: false, error: "Too many requests. Please try again later." };
+    }
+    // -----------------------------
     
-    return { 
-        productId: product.id, 
-        quantity: item.quantity, 
-        price: product.price 
+    const paymentMethod = formData.get("paymentMethod") as string;
+    if (paymentMethod !== "stripe" && paymentMethod !== "cod") {
+        return { success: false, error: "Invalid payment method." };
+    }
+
+    // Validate shipping details
+    const shippingData = {
+      fullName: formData.get("fullName"),
+      phone: formData.get("phone"),
+      address: formData.get("address"),
+      city: formData.get("city"),
     };
-  });
-  
-  try {
+
+    const validatedShipping = shippingSchema.safeParse(shippingData);
+
+    if (!validatedShipping.success) {
+        return { success: false, error: "Invalid shipping details." };
+    }
+
+    const { fullName, phone, address, city } = validatedShipping.data;
+
+    // Validate items
+    const validatedItems = cartItemsSchema.safeParse(items);
+
+    if (!validatedItems.success) {
+      return { success: false, error: "Invalid cart items." };
+    }
+
+    const productIds = validatedItems.data.map((i) => i.id);
+    const dbProducts = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+    });
+
+    let totalAmount = 0;
+    
+    // Use a map for O(1) lookups
+    const productMap = new Map(dbProducts.map(p => [p.id, p]));
+
+    const orderItemsData = validatedItems.data.map((item) => {
+      const product = productMap.get(item.id);
+      
+      if (!product) {
+          throw new Error(`Product ${item.id} no longer exists.`);
+      }
+
+      const price = Number(product.price);
+      totalAmount += price * item.quantity;
+      
+      return { 
+          productId: product.id, 
+          quantity: item.quantity, 
+          price: product.price 
+      };
+    });
+    
     // --- INV-01: Atomic Transaction ---
     const order = await prisma.$transaction(async (tx) => {
       // 1. Atomically deduct inventory
@@ -133,7 +133,7 @@ export async function placeOrder(items: CartItem[], formData: FormData) {
         });
         
         if (update.count === 0) {
-          throw new Error(`Insufficient stock for product ${item.id}`);
+          throw new Error(`Insufficient stock for one or more products in your cart.`);
         }
       }
 
@@ -199,7 +199,10 @@ export async function placeOrder(items: CartItem[], formData: FormData) {
     return { success: true, orderId: order.id, checkoutUrl: stripeSession.url };
 
   } catch (error) {
-    console.error("Order Creation Error: Database transaction failed", error instanceof Error ? error.message : "Unknown error");
-    return { success: false, error: error instanceof Error ? error.message : "A database error occurred while creating your order." };
+    console.error("CHECKOUT_ACTION_ERROR", error instanceof Error ? error.message : "Unknown error");
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "An unexpected error occurred during checkout." 
+    };
   }
 }
