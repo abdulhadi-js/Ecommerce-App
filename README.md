@@ -45,34 +45,34 @@ npm install stripe @upstash/ratelimit @upstash/redis next-cloudinary @prisma/cli
 Create a `.env` file in the root of your project and populate it with the following configuration:
 
 ```env
-DATABASE_URL="mysql://4VTxz33iSeBYANw.root:SqIoClDeTSekjCY1@gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/test?sslaccept=strict"
+DATABASE_URL="mysql://4VTxz33iSeBYA....cept=strict"
 
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="dge52jrnc"
-NEXT_PUBLIC_CLOUDINARY_API_KEY="195958177116481"
-CLOUDINARY_API_SECRET="quHO-t_AOv_bDEfhM_KVZyTWszg"
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="dge..rnc"
+NEXT_PUBLIC_CLOUDINARY_API_KEY="195....481"
+CLOUDINARY_API_SECRET="quHO-....VZyTWszg"
 
-AUTH_SECRET="0/F+rC8zG2qacCJLqtl39qvFXMxpTS3JpFUhaz+HRd4="
+AUTH_SECRET="0/F+rC8zG2qa....xpTS3JpFUhaz+HRd4="
 NEXT_PUBLIC_BASE_URL="https://luxestoreapp.vercel.app/"
 
 # Gmail SMTP Configuration
 EMAIL_SERVER_USER="dev.alhadi@gmail.com"
 # This is NOT your normal login password. 
 # You must generate an "App Password" in your Google Account Security settings.
-EMAIL_SERVER_PASSWORD="yjgfhypfkkgygagc" 
+EMAIL_SERVER_PASSWORD="yjgfh....kgygagc" 
 EMAIL_FROM="LuxeStore <dev.alhadi@gmail.com>"
 
 # Google Authentication
-GOOGLE_CLIENT_ID="225888483864-ououbpm2j08874ovh4ehiic32d9pmch8.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET="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"
+GOOGLE_CLIENT_ID="225888.......4ehiic32d9pmch8.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="GOCSPX-Ge.....SceZLQ_5AS"
 AUTH_TRUST_HOST=true
 
 # Stripe Configuration
-STRIPE_SECRET_KEY="sk_test_51Tb6LjHhiAW8EOxhsiUGSfwUeBR3dQE0VZkYU0rIAWRT8OMsYWgmEZ9u2AcUy3YUkTh6IdweSp8cX8acvurLNFmd007VG9pvhA"
-STRIPE_WEBHOOK_SECRET="whsec_05b89c625c4bb6ded331a1635414edd8ae9aac3a2e3119353b2fef6c40ca7b1"
+STRIPE_SECRET_KEY="sk_test_51Tb6Lj.......vurLNFmd007VG9pvhA"
+STRIPE_WEBHOOK_SECRET="whsec_05b89c625c4b.......53b2fef6c40ca7b1"
 
 # Upstash Redis
-UPSTASH_REDIS_REST_URL="https://liberal-wildcat-136425.upstash.io"
-UPSTASH_REDIS_REST_TOKEN="gQAAAAAAAhTpAAIgcDEwNTZkZDI3MmU2OWI0MGVkOTFjYzU4Yzk3MDlmYjEyYw"
+UPSTASH_REDIS_REST_URL="https://lib......5.upstash.io"
+UPSTASH_REDIS_REST_TOKEN="gQAAAAAAAhTpA.......lmYjEyYw"
 ```
 
 ## Local Development Setup
