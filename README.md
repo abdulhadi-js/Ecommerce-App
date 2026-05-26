@@ -45,26 +45,34 @@ npm install stripe @upstash/ratelimit @upstash/redis next-cloudinary @prisma/cli
 Create a `.env` file in the root of your project and populate it with the following configuration:
 
 ```env
-# --- Application ---
-NEXT_PUBLIC_BASE_URL=http://localhost:3000
+DATABASE_URL="mysql://4VTxz33iSeBYANw.root:SqIoClDeTSekjCY1@gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/test?sslaccept=strict"
 
-# --- Database (PostgreSQL) ---
-DATABASE_URL=postgresql://user:password@localhost:5432/luxestore?schema=public
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="dge52jrnc"
+NEXT_PUBLIC_CLOUDINARY_API_KEY="195958177116481"
+CLOUDINARY_API_SECRET="quHO-t_AOv_bDEfhM_KVZyTWszg"
 
-# --- Redis (Upstash) ---
-UPSTASH_REDIS_REST_URL=https://your-upstash-endpoint.upstash.io
-UPSTASH_REDIS_REST_TOKEN=your_upstash_rest_token
+AUTH_SECRET="0/F+rC8zG2qacCJLqtl39qvFXMxpTS3JpFUhaz+HRd4="
+NEXT_PUBLIC_BASE_URL="https://luxestoreapp.vercel.app/"
 
-# --- Stripe Payments ---
-# Your secret key from the Stripe Developer Dashboard
-STRIPE_SECRET_KEY=sk_test_...
-# Your publishable key (if required by frontend components)
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-# Webhook signing secret (generated via Stripe CLI or Dashboard)
-STRIPE_WEBHOOK_SECRET=whsec_...
+# Gmail SMTP Configuration
+EMAIL_SERVER_USER="dev.alhadi@gmail.com"
+# This is NOT your normal login password. 
+# You must generate an "App Password" in your Google Account Security settings.
+EMAIL_SERVER_PASSWORD="yjgfhypfkkgygagc" 
+EMAIL_FROM="LuxeStore <dev.alhadi@gmail.com>"
 
-# --- Cloudinary Assets ---
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
+# Google Authentication
+GOOGLE_CLIENT_ID="225888483864-ououbpm2j08874ovh4ehiic32d9pmch8.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="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"
+AUTH_TRUST_HOST=true
+
+# Stripe Configuration
+STRIPE_SECRET_KEY="sk_test_51Tb6LjHhiAW8EOxhsiUGSfwUeBR3dQE0VZkYU0rIAWRT8OMsYWgmEZ9u2AcUy3YUkTh6IdweSp8cX8acvurLNFmd007VG9pvhA"
+STRIPE_WEBHOOK_SECRET="whsec_05b89c625c4bb6ded331a1635414edd8ae9aac3a2e3119353b2fef6c40ca7b1"
+
+# Upstash Redis
+UPSTASH_REDIS_REST_URL="https://liberal-wildcat-136425.upstash.io"
+UPSTASH_REDIS_REST_TOKEN="gQAAAAAAAhTpAAIgcDEwNTZkZDI3MmU2OWI0MGVkOTFjYzU4Yzk3MDlmYjEyYw"
 ```
 
 ## Local Development Setup
