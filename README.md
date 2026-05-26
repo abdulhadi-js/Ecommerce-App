@@ -1,36 +1,121 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Luxe Store
 
-## Getting Started
+Luxe Store is an enterprise-grade luxury e-commerce platform designed to deliver a premium shopping experience. Built with a focus on high performance, transaction security, and visual fidelity, it provides a robust foundation for modern digital storefronts handling exclusive inventory and high-value transactions.
 
-First, run the development server:
+**Live Demo:** [https://luxestoreapp.vercel.app/](https://luxestoreapp.vercel.app/)
 
+## Core Features & Architecture
+
+*   **Atomic Inventory Management:** Utilizes database-level row locking and atomic Prisma transactions during checkout to guarantee stock integrity and prevent overselling of limited-edition items.
+*   **Stripe Payment Integration:** Implements a secure, two-phase payment architecture. Order creation is decoupled from payment confirmation via a custom Stripe webhook handler, which relies on cryptographic signature verification to update order statuses.
+*   **API Protection:** Protects critical endpoints, including the checkout pipeline, against brute-force and botnet attacks using sliding-window rate limiting powered by Upstash Redis.
+*   **Cursor-Based Pagination:** Optimizes database query performance and UI rendering for large datasets (e.g., admin order history) by replacing inefficient offset pagination with cursor-based fetching.
+*   **Cloudinary Asset Optimization:** Preserves the visual quality of luxury media without compromising load speeds by dynamically serving compressed, next-generation image formats (AVIF/WebP) via the Cloudinary CDN.
+
+## Tech Stack & Dependencies
+
+**Frontend:**
+*   Next.js (App Router)
+*   React
+*   Tailwind CSS
+*   Framer Motion
+*   next-cloudinary
+
+**Backend & Database:**
+*   Node.js
+*   Prisma ORM
+*   PostgreSQL
+
+**Payments & Security:**
+*   Stripe SDK
+*   @upstash/ratelimit
+
+**Caching & Storage:**
+*   Upstash Redis
+*   Cloudinary
+
+**Installation:**
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm install stripe @upstash/ratelimit @upstash/redis next-cloudinary @prisma/client
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Environment Variables Template (.env.example)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create a `.env` file in the root of your project and populate it with the following configuration:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+# --- Application ---
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
 
-## Learn More
+# --- Database (PostgreSQL) ---
+DATABASE_URL=postgresql://user:password@localhost:5432/luxestore?schema=public
 
-To learn more about Next.js, take a look at the following resources:
+# --- Redis (Upstash) ---
+UPSTASH_REDIS_REST_URL=https://your-upstash-endpoint.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your_upstash_rest_token
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# --- Stripe Payments ---
+# Your secret key from the Stripe Developer Dashboard
+STRIPE_SECRET_KEY=sk_test_...
+# Your publishable key (if required by frontend components)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+# Webhook signing secret (generated via Stripe CLI or Dashboard)
+STRIPE_WEBHOOK_SECRET=whsec_...
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# --- Cloudinary Assets ---
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
+```
 
-## Deploy on Vercel
+## Local Development Setup
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/your-username/luxe-store.git
+    cd luxe-store
+    ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+
+3.  **Configure Environment Variables:**
+    Copy the `.env.example` template above into a new `.env` file and fill in your specific credentials.
+
+4.  **Synchronize Database Schema:**
+    Push the Prisma schema to your local PostgreSQL database:
+    ```bash
+    npx prisma db push
+    ```
+
+5.  **Start Stripe Webhook Listener (Required for local payment testing):**
+    In a separate terminal window, forward Stripe events to your local API route:
+    ```bash
+    stripe listen --forward-to localhost:3000/api/webhooks/stripe
+    ```
+    *Note: Copy the `whsec_...` secret provided by this command into your `.env` file under `STRIPE_WEBHOOK_SECRET`.*
+
+6.  **Start Development Server:**
+    ```bash
+    npm run dev
+    ```
+    The application will be available at `http://localhost:3000`.
+
+## Deployment Instructions
+
+### Vercel Deployment
+
+1.  Push your code to a GitHub/GitLab repository.
+2.  Import the project into Vercel.
+3.  In the Vercel project settings, add all the environment variables from your `.env` file.
+    *   *Important:* Ensure `NEXT_PUBLIC_BASE_URL` is set to your production Vercel domain (e.g., `https://luxestoreapp.vercel.app`).
+4.  Deploy the application.
+
+### Stripe Production Webhook
+
+1.  Navigate to the **Webhooks** section in your Stripe Dashboard.
+2.  Click **Add an endpoint**.
+3.  Set the endpoint URL to your production domain: `https://luxestoreapp.vercel.app/api/webhooks/stripe`.
+4.  Select the `checkout.session.completed` event to listen for.
+5.  Click **Add endpoint**, reveal the production Signing Secret, and update your `STRIPE_WEBHOOK_SECRET` environment variable in Vercel with this new value.
